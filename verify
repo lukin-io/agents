@@ -1,0 +1,373 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+# Author: Maksim Lukin <max@lukin.io>
+# Copyright (c) 2026 Maksim Lukin
+# SPDX-License-Identifier: MIT
+
+# Verification script for Rails API
+# Runs all verification checks required before submitting code
+# See: AGENTS.md Section 11
+#
+# Usage:
+#   bin/verify              # Run the fast profile (default)
+#   bin/verify --full       # Run the optional extended profile
+#   bin/verify --fail-fast  # Stop on first failure
+#   bin/verify --only NAME  # Run only a specific check (e.g., --only rubocop)
+#   bin/verify --list       # List available checks and profiles
+#   bin/verify --help       # Show help
+
+require "digest"
+require "fileutils"
+require "open3"
+
+APP_ROOT = File.expand_path("..", __dir__)
+
+class Verifier
+  # Checks per AGENTS.md verification contract.
+  CHECKS = {
+    rubocop: { name: "RuboCop", cmd: "bundle exec rubocop" },
+    rspec: { name: "RSpec", cmd: nil }, # Set dynamically based on --sequential flag
+    brakeman: { name: "Brakeman", cmd: "bundle exec brakeman -q -w2" },
+    audit: { name: "Bundle Audit", cmd: "bundle exec bundle audit check --update" },
+    swagger: { name: "RSwag Swaggerize", cmd: "bundle exec rails rswag:specs:swaggerize" },
+    seeds: { name: "Seeds", cmd: "bundle exec rails db:seed:replant" }
+  }.freeze
+
+  CHECK_PROFILES = {
+    fast: %i[rubocop rspec swagger].freeze,
+    full: %i[rubocop rspec brakeman audit swagger seeds].freeze
+  }.freeze
+
+  SCHEMA_FINGERPRINT_GLOBS = [
+    "db/schema.rb",
+    "db/structure.sql",
+    "db/migrate/**/*.rb"
+  ].freeze
+
+  SWAGGER_RELEVANT_GLOBS = [
+    "app/controllers/**/*.rb",
+    "app/controllers/concerns/**/*.rb",
+    "app/blueprints/**/*.rb",
+    "config/routes.rb",
+    "config/routes/**/*.rb",
+    "spec/api/**/*.rb",
+    "spec/integration/**/*.rb",
+    "spec/requests/**/*.rb"
+  ].freeze
+
+  PARALLEL_PREPARE_COMMAND = "bundle exec rails parallel:prepare"
+  PARALLEL_PREPARE_STAMP = File.join(APP_ROOT, "tmp/verify_parallel_prepare.sha256")
+  PARALLEL_PREPARE_LOCK = File.join(APP_ROOT, "tmp/verify_parallel_prepare.lock")
+
+  def initialize(options = {})
+    @results = []
+    @auto_skips = {}
+    @sequential = options[:sequential] || false
+    @fast_fail = options[:fast_fail] || false
+    @only = options[:only]
+    @workers = options[:workers] || 8
+    @profile = (options[:profile] || :fast).to_sym
+  end
+
+  def run
+    setup_environment
+    prepare_checks
+    selected_checks = checks_to_run
+
+    puts banner("VERIFICATION CHECKLIST")
+    puts "Profile: #{@profile}"
+    puts "RSpec mode: #{@sequential ? 'Sequential' : "Parallel (#{@workers} workers)"}"
+    puts "Running #{selected_checks.size} check(s)..."
+    print_auto_skips
+    puts
+
+    selected_checks.each_with_index do |key, index|
+      check = @checks[key]
+      run_check(key, check, index + 1, selected_checks.size)
+
+      if @fast_fail && !@results.last[:success]
+        puts "\n⚡ Fast-fail enabled, stopping after first failure.\n"
+        break
+      end
+    end
+
+    print_summary
+    all_passed? ? 0 : 1
+  end
+
+  def self.list_checks
+    puts "Available profiles:"
+    CHECK_PROFILES.each do |key, checks|
+      puts "  #{key.to_s.ljust(10)} - #{checks.join(', ')}"
+    end
+    puts
+    puts "Available checks:"
+    CHECKS.each_key do |key|
+      check = CHECKS[key]
+      puts "  #{key.to_s.ljust(10)} - #{check[:name]}"
+    end
+  end
+
+  def self.parse_options(args)
+    options = { profile: :fast }
+
+    while args.any?
+      case args.first
+      when "--sequential", "-s"
+        options[:sequential] = true
+        args.shift
+      when "--fast"
+        options[:profile] = :fast
+        args.shift
+      when "--full"
+        options[:profile] = :full
+        args.shift
+      when "--fail-fast", "-f"
+        options[:fast_fail] = true
+        args.shift
+      when "--only", "-o"
+        args.shift
+        options[:only] = args.shift
+      when "--workers", "-w"
+        args.shift
+        options[:workers] = args.shift.to_i
+      when "--list", "-l"
+        list_checks
+        exit 0
+      when "--help", "-h"
+        puts <<~HELP
+          Usage: bin/verify [OPTIONS]
+
+          Profiles:
+            default / --fast    Fast profile: rubocop + rspec
+                                Adds swagger only when API surfaces changed
+                                Excludes specs tagged :full_only
+            --full              Optional extended profile: fast + brakeman + audit + seeds
+                                Includes specs tagged :full_only
+
+          Options:
+            --sequential, -s    Run RSpec sequentially (slower but more stable)
+            --fail-fast, -f     Stop on first failure
+            --only NAME, -o     Run only specific check (rubocop, rspec, brakeman, audit, swagger, seeds)
+            --workers N, -w     Number of parallel workers for RSpec (default: 8)
+            --list, -l          List available profiles and checks
+            --help, -h          Show this help
+
+          Examples:
+            bin/verify                    # Run the fast profile
+            bin/verify --full             # Run the optional extended profile
+            bin/verify --fail-fast        # Stop on first failure
+            bin/verify --only rubocop     # Run only RuboCop
+            bin/verify --only rspec -s    # Run only RSpec sequentially
+        HELP
+        exit 0
+      else
+        args.shift
+      end
+    end
+
+    options
+  end
+
+  private
+
+  def setup_environment
+    # Ensure clean bundler environment for subprocesses
+    ENV["BUNDLE_GEMFILE"] ||= File.join(APP_ROOT, "Gemfile")
+
+    # Disable spring if present (can cause issues with parallel tests)
+    ENV["DISABLE_SPRING"] = "1"
+  end
+
+  def prepare_checks
+    @checks = CHECKS.dup.transform_values(&:dup)
+    rspec_filter = @profile == :fast ? "--tag ~full_only" : nil
+    swagger_prefix = @profile == :fast ? "ADDITIONAL_RSPEC_OPTS='--tag ~full_only' " : ""
+
+    # Set RSpec command based on mode
+    # Both modes use "RSpec" as the display name for consistency
+    if @sequential
+      @checks[:rspec][:cmd] = ["bundle exec rspec spec/", rspec_filter].compact.join(" ")
+    else
+      parallel_parts = ["bundle exec parallel_rspec -n #{@workers}"]
+      parallel_parts << "-o '#{rspec_filter}'" if rspec_filter
+      parallel_parts << "spec/"
+      @checks[:rspec][:cmd] = parallel_parts.join(" ")
+    end
+
+    @checks[:swagger][:cmd] = "#{swagger_prefix}bundle exec rails rswag:specs:swaggerize"
+  end
+
+  def checks_to_run
+    if @only
+      key = @only.to_sym
+      if CHECKS.key?(key)
+        [key]
+      else
+        puts "❌ Unknown check: #{@only}"
+        puts "Run 'bin/verify --list' to see available checks."
+        exit 1
+      end
+    else
+      checks = CHECK_PROFILES.fetch(@profile) do
+        puts "❌ Unknown profile: #{@profile}"
+        puts "Run 'bin/verify --list' to see available profiles."
+        exit 1
+      end
+      checks = checks.dup
+
+      if @profile == :fast && !swagger_needed?
+        @auto_skips[:swagger] = "no API surface changes detected"
+        checks.delete(:swagger)
+      end
+
+      checks
+    end
+  end
+
+  def run_check(key, check, number, total)
+    puts banner("#{number}/#{total}: #{check[:name]}")
+    puts "Command: #{check[:cmd]}\n\n"
+
+    start_time = Time.now
+    success, exit_code = execute_check_command(key, check[:cmd])
+    duration = (Time.now - start_time).round(2)
+
+    @results << {
+      name: check[:name],
+      cmd: check[:cmd],
+      success: success,
+      exit_code: exit_code,
+      duration: duration
+    }
+
+    status = @results.last[:success] ? "✅ PASSED" : "❌ FAILED"
+    puts "\n#{status} (exit: #{exit_code}, #{duration}s)\n\n"
+  end
+
+  def print_summary
+    puts banner("CHECKS SUMMARY")
+
+    @results.each do |result|
+      status = result[:success] ? "✅" : "❌"
+      puts "#{status} #{result[:name].ljust(25)} | exit: #{result[:exit_code]} | #{result[:duration]}s"
+    end
+
+    total_duration = @results.sum { |r| r[:duration] }.round(2)
+    puts "\nTotal time: #{total_duration}s"
+
+    puts "\n" + "-" * 60
+    if all_passed?
+      puts "✅ ALL CHECKS PASSED"
+    else
+      failed = @results.reject { |r| r[:success] }
+      puts "❌ #{failed.size} CHECK(S) FAILED:"
+      failed.each { |f| puts "   - #{f[:name]}: #{f[:cmd]}" }
+    end
+    puts "-" * 60 + "\n"
+  end
+
+  def all_passed?
+    @results.all? { |r| r[:success] }
+  end
+
+  def print_auto_skips
+    return if @auto_skips.empty?
+
+    @auto_skips.each do |key, reason|
+      puts "Auto-skip: #{CHECKS.fetch(key).fetch(:name)} (#{reason})"
+    end
+  end
+
+  def execute_check_command(key, cmd)
+    prepare_success, prepare_exit_code = prepare_parallel_test_databases_if_needed(key)
+    return [false, prepare_exit_code] unless prepare_success
+
+    success = system(cmd)
+    exit_code = $?.exitstatus || 1
+    [success && exit_code.zero?, exit_code]
+  end
+
+  def prepare_parallel_test_databases_if_needed(key)
+    return [true, 0] unless key == :rspec && !@sequential
+    return [true, 0] unless parallel_prepare_needed?
+
+    FileUtils.mkdir_p(File.dirname(PARALLEL_PREPARE_STAMP))
+
+    File.open(PARALLEL_PREPARE_LOCK, File::RDWR | File::CREAT, 0o644) do |lock|
+      lock.flock(File::LOCK_EX)
+      return [true, 0] unless parallel_prepare_needed?
+
+      puts "Preparing parallel test databases (schema changed)...\n\n"
+      success = system(PARALLEL_PREPARE_COMMAND)
+      exit_code = $?.exitstatus || 1
+      return [false, exit_code] unless success && exit_code.zero?
+
+      File.write(PARALLEL_PREPARE_STAMP, current_schema_fingerprint)
+    ensure
+      lock.flock(File::LOCK_UN)
+    end
+
+    [true, 0]
+  end
+
+  def parallel_prepare_needed?
+    return true unless File.exist?(PARALLEL_PREPARE_STAMP)
+
+    File.read(PARALLEL_PREPARE_STAMP).strip != current_schema_fingerprint
+  end
+
+  def current_schema_fingerprint
+    digest = Digest::SHA256.new
+
+    expand_globs(SCHEMA_FINGERPRINT_GLOBS).each do |path|
+      next unless File.file?(path)
+
+      digest << path
+      digest << File.read(path)
+    end
+
+    digest.hexdigest
+  end
+
+  def swagger_needed?
+    changed_files.any? { |path| matches_any_glob?(path, SWAGGER_RELEVANT_GLOBS) }
+  end
+
+  def changed_files
+    @changed_files ||= begin
+      paths = []
+      paths.concat(run_cmd("git diff --name-only").split("\n"))
+      paths.concat(run_cmd("git diff --cached --name-only").split("\n"))
+      paths.concat(run_cmd("git ls-files --others --exclude-standard").split("\n"))
+      paths.reject(&:empty?).uniq.sort
+    end
+  end
+
+  def expand_globs(globs)
+    globs.flat_map { |glob| Dir.glob(glob) }.uniq.sort
+  end
+
+  def matches_any_glob?(path, globs)
+    globs.any? { |glob| File.fnmatch(glob, path, File::FNM_PATHNAME | File::FNM_EXTGLOB) }
+  end
+
+  def run_cmd(cmd)
+    output, status = Open3.capture2e(cmd)
+    return output if status.success?
+
+    raise "Command failed: #{cmd}\n#{output}"
+  end
+
+  def banner(text)
+    line = "=" * 60
+    "\n#{line}\n#{text.center(60)}\n#{line}\n"
+  end
+end
+
+if __FILE__ == $PROGRAM_NAME
+  FileUtils.chdir(APP_ROOT) do
+    options = Verifier.parse_options(ARGV.dup)
+    exit Verifier.new(options).run
+  end
+end

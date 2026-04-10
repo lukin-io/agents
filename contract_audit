@@ -1,0 +1,543 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+# Author: Maksim Lukin <max@lukin.io>
+# Copyright (c) 2026 Maksim Lukin
+# SPDX-License-Identifier: MIT
+
+# Contract drift audit script for Rails API
+# - Default mode audits changed files / added lines (legacy-safe)
+# - --all mode audits the full repository surfaces
+#
+# Usage:
+#   bin/contract_audit
+#   bin/contract_audit --all
+#   bin/contract_audit --only docs_templates
+#   bin/contract_audit --list
+
+require "fileutils"
+require "open3"
+
+APP_ROOT = File.expand_path("..", __dir__)
+
+class ContractAuditor
+  CHECKS = {
+    requirements_read_only: "Requirements docs remain untouched (doc/requirements/**)",
+    swagger_generated_source: "Swagger YAML not edited alone (must be driven by rswag specs)",
+    db_specific_sql: "No DB-specific SQL tokens introduced",
+    route_style: "Route literals avoid kebab-case and trailing slashes",
+    controller_manual_json: "No new ad-hoc render json hash payloads in controllers",
+    docs_templates: "Changed Flow/PRD docs follow required section templates"
+  }.freeze
+
+  CHECK_ORDER = %i[
+    requirements_read_only
+    swagger_generated_source
+    db_specific_sql
+    route_style
+    controller_manual_json
+    docs_templates
+  ].freeze
+
+  ROUTE_FILES = ["config/routes.rb", "config/routes/**/*.rb"].freeze
+  RUBY_APP_FILES = ["app/**/*.rb", "lib/**/*.rb", "db/**/*.rb"].freeze
+  CONTROLLER_FILES = ["app/controllers/**/*.rb"].freeze
+  FLOW_FILES = ["doc/flow/**/*.md"].freeze
+  PRD_FILES = ["doc/prd/**/*.md"].freeze
+
+  CONTROLLER_RENDER_EXCEPTIONS = [
+    "app/controllers/concerns/response_envelope_renderable.rb",
+    "app/controllers/concerns/error_envelope_renderable.rb",
+    "app/controllers/concerns/validation_error_renderable.rb"
+  ].freeze
+
+  DB_SPECIFIC_PATTERNS = [
+    /\bILIKE\b/i,
+    /\bIFNULL\b/i,
+    /->>/,
+    /#>>/,
+    /\bREGEXP\b/i,
+    /\bRLIKE\b/i,
+    /\bJSON_EXTRACT\b/i
+  ].freeze
+
+  FLOW_REQUIRED_HEADINGS = [
+    ["table of contents", "toc"],
+    ["general description"],
+    ["validation use cases"],
+    ["pundit policy"],
+    ["primary phone/primary email"],
+    ["additional location verification"],
+    ["implementation notes"],
+    ["common headers"],
+    ["status codes"],
+    ["flow"],
+    ["responsible for implementation files"]
+  ].freeze
+
+  PRD_REQUIRED_HEADINGS = [
+    ["problem"],
+    ["goals"],
+    ["scope"],
+    ["user stories"],
+    ["technical considerations"],
+    ["metrics"],
+    ["rollout"],
+    ["dependencies"]
+  ].freeze
+
+  def initialize(options = {})
+    @all = options[:all] || false
+    @only = options[:only]
+    @fast_fail = options[:fast_fail] || false
+    @verbose = options[:verbose] || false
+    @allowed_requirement_paths = Array(options[:allowed_requirement_paths]).map { |path| normalize_path(path) }.uniq
+    @results = []
+  end
+
+  def run
+    preload_git_state
+
+    puts banner("CONTRACT AUDIT")
+    puts "Mode: #{@all ? 'Full repository' : 'Changed files (default)'}"
+    puts "Changed files: #{@changed_files.size}" unless @all
+    puts "Running #{checks_to_run.size} check(s)...\n\n"
+
+    checks_to_run.each_with_index do |key, index|
+      run_check(key, index + 1, checks_to_run.size)
+      break if @fast_fail && @results.last[:status] == :failed
+    end
+
+    print_summary
+    all_passed? ? 0 : 1
+  end
+
+  def self.list_checks
+    puts "Available contract audit checks:"
+    CHECK_ORDER.each do |key|
+      puts "  #{key.to_s.ljust(26)} - #{CHECKS.fetch(key)}"
+    end
+  end
+
+  private
+
+  def preload_git_state
+    @changed_files = changed_files
+    @added_lines = added_lines_by_file
+    # Requirement-handoff detection compares added vs removed version headings.
+    @deleted_lines = deleted_lines_by_file
+  end
+
+  def checks_to_run
+    return CHECK_ORDER if @only.nil?
+
+    key = @only.to_sym
+    unless CHECKS.key?(key)
+      puts "Unknown check: #{@only}"
+      puts "Run 'bin/contract_audit --list' to see available checks."
+      exit 1
+    end
+    [key]
+  end
+
+  def run_check(key, number, total)
+    puts banner("#{number}/#{total}: #{key}")
+    puts CHECKS.fetch(key)
+
+    started = Time.now
+    result = send("check_#{key}")
+    duration = (Time.now - started).round(2)
+
+    @results << {
+      key: key,
+      status: result.fetch(:status),
+      details: result.fetch(:details),
+      duration: duration
+    }
+
+    status_label = case result[:status]
+                   when :passed then "PASS"
+                   when :skipped then "SKIP"
+                   else "FAIL"
+                   end
+    puts "Result: #{status_label} (#{duration}s)"
+    print_details(result[:details]) if @verbose || result[:status] == :failed
+    puts
+  rescue StandardError => e
+    @results << { key: key, status: :failed, details: ["#{e.class}: #{e.message}"], duration: 0.0 }
+    puts "Result: FAIL (exception)"
+    print_details(["#{e.class}: #{e.message}"])
+  end
+
+  def check_requirements_read_only
+    touched = @changed_files.select { |f| f.start_with?("doc/requirements/") }
+    return passed if touched.empty?
+
+    # Allow the common handoff workflow automatically:
+    # a requirement doc already contains a newly added Version heading that
+    # implementation is meant to follow in this task.
+    auto_allowed = touched.select { |f| auto_allow_requirement_handoff?(f) }
+    disallowed = touched.reject do |f|
+      auto_allowed.include?(f) || @allowed_requirement_paths.include?(normalize_path(f))
+    end
+    if disallowed.empty?
+      details = []
+      if auto_allowed.any?
+        details << "Auto-allowed additive requirement handoff docs:"
+        details.concat(auto_allowed.map { |f| "  - #{f}" })
+      end
+      return passed(details)
+    end
+
+    details = ["Edited requirement docs are forbidden:"]
+    details.concat(disallowed.map { |f| "  - #{f}" })
+    if auto_allowed.any?
+      details << "Auto-allowed additive requirement handoff docs:"
+      details.concat(auto_allowed.map { |f| "  - #{f}" })
+    end
+    if @allowed_requirement_paths.any?
+      details << "Allowlisted requirement docs for this run:"
+      details.concat(@allowed_requirement_paths.map { |f| "  - #{f}" })
+    end
+
+    failed(details)
+  end
+
+  def check_swagger_generated_source
+    swagger = "swagger/v1/swagger.yaml"
+    return passed unless @changed_files.include?(swagger)
+
+    spec_changed = @changed_files.any? { |f| f.start_with?("spec/integration/") }
+    return passed if spec_changed
+
+    failed([
+      "#{swagger} changed without spec/integration changes.",
+      "Regenerate swagger via rswag from specs; avoid hand-editing YAML."
+    ])
+  end
+
+  def check_db_specific_sql
+    hits = []
+    enumerate_lines(paths: RUBY_APP_FILES) do |file, line_ref, line|
+      next unless DB_SPECIFIC_PATTERNS.any? { |pattern| line.match?(pattern) }
+
+      hits << "#{file}:#{line_ref} #{line.strip}"
+      break if hits.size >= 30
+    end
+
+    return passed if hits.empty?
+
+    failed(["DB-specific SQL token(s) detected:", *hits])
+  end
+
+  def check_route_style
+    hits = []
+    enumerate_lines(paths: ROUTE_FILES) do |file, line_ref, line|
+      stripped = line.strip
+      next if stripped.start_with?("#")
+
+      kebab = stripped.match?(/^\s*(get|post|put|patch|delete|match)\s+["'][^"']*-[^"']*["']/) ||
+              stripped.match?(/path:\s*["'][^"']*-[^"']*["']/)
+      trailing_slash = stripped.match?(/^\s*(get|post|put|patch|delete|match)\s+["'][^"']+\/["']/) ||
+                       stripped.match?(/path:\s*["'][^"']+\/["']/)
+
+      if kebab || trailing_slash
+        reason = []
+        reason << "kebab-case" if kebab
+        reason << "trailing slash" if trailing_slash
+        hits << "#{file}:#{line_ref} (#{reason.join(', ')}) #{stripped}"
+      end
+      break if hits.size >= 30
+    end
+
+    return passed if hits.empty?
+
+    failed(["Route style violations detected:", *hits])
+  end
+
+  def check_controller_manual_json
+    hits = []
+    enumerate_lines(paths: CONTROLLER_FILES, changed_only: true) do |file, line_ref, line|
+      next if CONTROLLER_RENDER_EXCEPTIONS.include?(file)
+      next unless line.match?(/render\s+json:\s*\{/)
+
+      hits << "#{file}:#{line_ref} #{line.strip}"
+      break if hits.size >= 30
+    end
+
+    return passed if hits.empty?
+
+    failed([
+      "Ad-hoc render json hashes detected in controllers (use envelope helpers + Blueprinter):",
+      *hits
+    ])
+  end
+
+  def check_docs_templates
+    flow_files, prd_files = docs_files_to_audit
+    return skipped("No changed Flow/PRD docs to audit") if !@all && flow_files.empty? && prd_files.empty?
+
+    errors = []
+    flow_files.each { |file| errors.concat(check_heading_template(file, FLOW_REQUIRED_HEADINGS, "Flow")) }
+    prd_files.each { |file| errors.concat(check_heading_template(file, PRD_REQUIRED_HEADINGS, "PRD")) }
+
+    return passed if errors.empty?
+
+    failed(errors)
+  end
+
+  def docs_files_to_audit
+    flow = @changed_files.select { |f| matches_any_glob?(f, FLOW_FILES) && File.file?(f) }
+    prd = @changed_files.select { |f| matches_any_glob?(f, PRD_FILES) && File.file?(f) }
+    [flow, prd]
+  end
+
+  def check_heading_template(file, required_groups, label)
+    return ["#{label} template audit: #{file} not found"] unless File.exist?(file)
+
+    headings = File.readlines(file, chomp: true)
+                   .filter_map { |line| line[/^\s{0,3}\#{1,6}\s+(.+?)\s*$/, 1]&.downcase }
+    index_cursor = -1
+    problems = []
+
+    required_groups.each do |alternatives|
+      match_index = headings.find_index.with_index do |heading, idx|
+        idx > index_cursor && alternatives.any? { |token| heading.include?(token) }
+      end
+
+      if match_index.nil?
+        problems << "#{label} template audit: #{file} missing heading (any of: #{alternatives.join(' / ')})"
+      else
+        index_cursor = match_index
+      end
+    end
+
+    problems
+  end
+
+  def enumerate_lines(paths:, changed_only: false)
+    if @all && !changed_only
+      expand_globs(paths).each do |file|
+        next unless File.file?(file)
+
+        File.readlines(file, chomp: true).each_with_index do |line, idx|
+          yield(file, idx + 1, line)
+        end
+      end
+    else
+      @added_lines.each do |file, lines|
+        next unless matches_any_glob?(file, paths)
+
+        lines.each_with_index do |line, idx|
+          yield(file, "+#{idx + 1}", line)
+        end
+      end
+    end
+  end
+
+  def expand_globs(globs)
+    globs.flat_map { |glob| Dir.glob(glob) }.uniq.sort
+  end
+
+  def matches_any_glob?(path, globs)
+    globs.any? { |glob| File.fnmatch(glob, path, File::FNM_PATHNAME | File::FNM_EXTGLOB) }
+  end
+
+  def changed_files
+    paths = []
+    paths.concat(run_cmd("git diff --name-only").split("\n"))
+    paths.concat(run_cmd("git diff --cached --name-only").split("\n"))
+    paths.concat(run_cmd("git ls-files --others --exclude-standard").split("\n"))
+    paths.reject(&:empty?).uniq.sort
+  end
+
+  def added_lines_by_file
+    content = []
+    content << run_cmd("git diff --unified=0 --no-color")
+    content << run_cmd("git diff --cached --unified=0 --no-color")
+    mapped = parse_added_lines(content.join("\n"))
+
+    # Untracked files are not in diff output, so include their full content as added lines.
+    untracked = run_cmd("git ls-files --others --exclude-standard").split("\n").reject(&:empty?)
+    untracked.each do |file|
+      next unless File.file?(file)
+
+      mapped[file] ||= []
+      mapped[file].concat(File.readlines(file, chomp: true))
+    end
+
+    mapped
+  end
+
+  def parse_added_lines(diff_text)
+    current_file = nil
+    lines = Hash.new { |h, k| h[k] = [] }
+
+    diff_text.each_line do |line|
+      if line.start_with?("+++ b/")
+        current_file = line.sub("+++ b/", "").strip
+        next
+      end
+      next unless current_file
+      next unless line.start_with?("+")
+      next if line.start_with?("+++")
+
+      lines[current_file] << line[1..].to_s.chomp
+    end
+
+    lines
+  end
+
+  def deleted_lines_by_file
+    content = []
+    content << run_cmd("git diff --unified=0 --no-color")
+    content << run_cmd("git diff --cached --unified=0 --no-color")
+    parse_deleted_lines(content.join("\n"))
+  end
+
+  def parse_deleted_lines(diff_text)
+    current_file = nil
+    lines = Hash.new { |h, k| h[k] = [] }
+
+    diff_text.each_line do |line|
+      if line.start_with?("--- a/")
+        current_file = line.sub("--- a/", "").strip
+        next
+      end
+      next unless current_file
+      next unless line.start_with?("-")
+      next if line.start_with?("---")
+
+      lines[current_file] << line[1..].to_s.chomp
+    end
+
+    lines
+  end
+
+  def auto_allow_requirement_handoff?(file)
+    added = Array(@added_lines[file])
+    deleted = Array(@deleted_lines[file])
+
+    # Auto-allow only when the diff adds a new requirement Version heading
+    # and does not remove an existing Version heading. That captures the
+    # normal "new version was authored upstream, now implement it" workflow
+    # without silently ignoring arbitrary requirement rewrites.
+    added_versions = version_heading_lines(added)
+    return false if added_versions.empty?
+
+    deleted_versions = version_heading_lines(deleted)
+    deleted_versions.empty?
+  end
+
+  def version_heading_lines(lines)
+    # Requirement version ownership lives in doc/requirements/**, so headings
+    # like "# Version 1.1 - ..." are the stable signal for a handoff diff.
+    Array(lines).select { |line| line.match?(/^\s*#+\s*Version\b/i) }
+  end
+
+  def run_cmd(cmd)
+    output, status = Open3.capture2e(cmd)
+    return output if status.success?
+
+    raise "Command failed: #{cmd}\n#{output}"
+  end
+
+  def normalize_path(path)
+    File.expand_path(path, APP_ROOT)
+  rescue StandardError
+    path
+  end
+
+  def passed(details = [])
+    { status: :passed, details: Array(details) }
+  end
+
+  def skipped(message)
+    { status: :skipped, details: [message] }
+  end
+
+  def failed(details)
+    { status: :failed, details: Array(details) }
+  end
+
+  def print_summary
+    puts banner("CONTRACT AUDIT SUMMARY")
+    @results.each do |result|
+      glyph = case result[:status]
+              when :passed then "PASS"
+              when :skipped then "SKIP"
+              else "FAIL"
+              end
+      puts "#{glyph.ljust(5)} #{result[:key].to_s.ljust(26)} | #{result[:duration]}s"
+    end
+    puts
+    failures = @results.count { |r| r[:status] == :failed }
+    if failures.zero?
+      puts "Contract audit passed"
+    else
+      puts "Contract audit failed (#{failures} failing check#{failures == 1 ? '' : 's'})"
+    end
+  end
+
+  def print_details(details)
+    details.each { |line| puts "  #{line}" }
+  end
+
+  def all_passed?
+    @results.none? { |r| r[:status] == :failed }
+  end
+
+  def banner(text)
+    line = "=" * 64
+    "\n#{line}\n#{text.center(64)}\n#{line}"
+  end
+end
+
+def parse_options(argv)
+  options = {}
+  args = argv.dup
+
+  until args.empty?
+    case args.shift
+    when "--all", "-a"
+      options[:all] = true
+    when "--fast", "-f"
+      options[:fast_fail] = true
+    when "--verbose", "-v"
+      options[:verbose] = true
+    when "--only", "-o"
+      options[:only] = args.shift
+    when "--allow-requirement"
+      (options[:allowed_requirement_paths] ||= []) << args.shift
+    when "--list", "-l"
+      ContractAuditor.list_checks
+      exit 0
+    when "--help", "-h"
+      puts <<~HELP
+        Usage: bin/contract_audit [OPTIONS]
+
+        Options:
+          --all, -a          Audit full repository scope
+          --fast, -f         Stop after first failing check
+          --verbose, -v      Print details for all checks
+          --only NAME, -o    Run only one check (use --list)
+          --allow-requirement PATH
+                             Allow a specific edited requirement doc for this audit run.
+                             Repeatable; use only for explicit requirement handoff inputs.
+          --list, -l         List available checks
+          --help, -h         Show this help
+
+        Notes:
+          - Default mode audits changed files and added lines only.
+          - This keeps audits practical in repos with legacy drift.
+      HELP
+      exit 0
+    end
+  end
+
+  options
+end
+
+FileUtils.chdir(APP_ROOT) do
+  options = parse_options(ARGV)
+  exit ContractAuditor.new(options).run
+end

@@ -30,7 +30,7 @@ class Verifier
     brakeman: { name: "Brakeman", cmd: "bundle exec brakeman -q -w2" },
     audit: { name: "Bundle Audit", cmd: "bundle exec bundle audit check --update" },
     swagger: { name: "RSwag Swaggerize", cmd: "bundle exec rails rswag:specs:swaggerize" },
-    seeds: { name: "Seeds", cmd: "bundle exec rails db:seed:replant" }
+    seeds: { name: "Seeds", cmd: "bundle exec rails seeds:run:ci" }
   }.freeze
 
   CHECK_PROFILES = {

@@ -47,6 +47,7 @@ Document order reference (informational):
 1. `AGENTS.md` (single source for process + standards)
 2. `doc/requirements/**` (canonical feature API contract; read-only)
 3. `doc/flow/**` and `doc/prd/**` (derived docs, updated only after verification)
+4. `TOOLS.md` additional available tools description
 
 ### 1.2 Precedence by concern
 - This section is the authoritative tie-breaker for precedence decisions.
@@ -128,6 +129,22 @@ Invocation notes:
 - `PRD` must point to the feature-owned PRD doc whose relative path mirrors the requirement doc under `doc/prd/**`.
 - Example: `doc/requirements/PREFERENCES.md` -> `doc/prd/PREFERENCES.md`
 - Example: `doc/requirements/ai/RECRUITER_CHAT_SERVICE.md` -> `doc/prd/ai/RECRUITER_CHAT_SERVICE.md`
+- If the operator provides Jira shorthand instead of the full invocation template, expand it before Phase 0.
+
+### 4.1 Jira shorthand expansion
+Accepted shorthand example:
+
+```text
+WEB-551 jira task process via @AGENTS.md
+```
+
+Required behavior:
+1. Treat `jira task_id`, `jira`, `task`, `issue`, and `ticket` as Jira work items per `TOOLS.md`.
+2. Before Phase 0, run `acli jira workitem view <TASK_ID> --fields description`.
+3. Use the Jira description to derive `FEATURE_LABEL`, requirement version text, and the most likely `doc/requirements/**` path.
+4. Expand the shorthand into the Invocation Template in working notes/output before continuing.
+5. If the Jira description does not identify the target requirement area clearly enough to map `doc/requirements/**`, stop and report the missing mapping; do not guess.
+6. If the git branch name, does not include Jira ticket id stop and report about it.
 
 ---
 
@@ -135,6 +152,7 @@ Invocation notes:
 
 ### 5.1 Hard planning gate
 When task says planning-first or "Execute per AGENTS.md":
+- If only Jira shorthand is provided, resolve it first per section `4.1` and `TOOLS.md`; Phase 0 starts only after the Jira description has been fetched.
 - Phase 0-2: **NO CODE CHANGES**
 - Output only:
   - file paths
@@ -145,9 +163,10 @@ When task says planning-first or "Execute per AGENTS.md":
 
 ### 5.2 Phase 0 - Contract extraction (NO CODE)
 Do:
-1. Read this document (relevant normative sections).
-2. Read `doc/requirements/**` for target feature (all versions).
-3. Extract exact backend contract (snake_case keys).
+1. If invocation used Jira shorthand, fetch the work item description first via `acli jira workitem view <TASK_ID> --fields description`.
+2. Read this document (relevant normative sections).
+3. Read `doc/requirements/**` for target feature (all versions).
+4. Extract exact backend contract (snake_case keys).
 
 Output:
 - Endpoints: method + path + auth + success status

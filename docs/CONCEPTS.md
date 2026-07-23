@@ -1,191 +1,304 @@
 # Agentic Workflow Concepts
 
-This document defines the vocabulary used by this toolkit. The goal is to make the workflow understandable as an agent-ready engineering system, not just a collection of Rails scripts.
+This document defines the vocabulary used by the toolkit. It maps agent/context terminology to concrete repository authorities, procedures, artifacts, and gates.
+
+It is explanatory. `AGENTS.md`, `AGENTS_CONTRACT.md`, and target requirements remain authoritative.
 
 ## System Model
 
-This repository provides an **Agent Operating Contract** for Rails API implementation work.
+```text
+Phase -1 context loading
+  -> requirement contract extraction
+  -> repository scan and plan
+  -> confirmation gate
+  -> implementation
+  -> quality gate review
+  -> contract audit
+  -> agentic audit when triggered
+  -> QUALITY GATE DECISION
+  -> derived docs when PASS
+  -> final evidence report
+```
 
-It is designed for human engineers and coding agents working in the same repository, against the same source-of-truth requirement documents, with the same verification gates before merge.
+Cross-phase procedures:
 
 ```text
-Requirement source
-  -> context extraction
-  -> repo scan
-  -> implementation plan
-  -> implementation
-  -> verification
-  -> contract audit
-  -> derived docs
-  -> final report
+context_loading
+  -> rails_api_feature
+  -> quality_gate_review
+  -> flow_prd_update when required
+```
+
+Cross-phase artifacts:
+
+```text
+CONTEXT INVENTORY + CONTEXT SUMMARY
+  -> FEATURE IMPLEMENTATION HANDOFF
+  -> QUALITY GATE DECISION
+  -> DOC UPDATE HANDOFF
+  -> final evidence
 ```
 
 ## Core Concepts
 
 ### Agent Operating Contract
 
-`AGENTS.md` is the operating contract for implementation work.
+The Agent Operating Contract has two normative layers:
 
-It defines:
+- `AGENTS.md` — small mandatory entrypoint for load order, Phase -1, skill invocation, authority, conflicts, and conditional agentic audit.
+- `AGENTS_CONTRACT.md` — preserved complete Rails API contract for Phase 0 onward, engineering invariants, verification, documentation, and final reporting.
 
-- authority and precedence rules
-- allowed and forbidden edit surfaces
-- planning phases and stop gates
-- implementation standards
-- API response invariants
-- verification requirements
-- documentation update rules
-- final reporting format
+The split reduces default context pressure without deleting or weakening the original contract.
 
-The contract keeps human and AI-assisted work aligned by reducing ambiguity before implementation begins.
+### Thin Harness
+
+The thin harness is the small root `AGENTS.md`.
+
+It should own cross-phase control concerns:
+
+- what must be loaded
+- which authority wins
+- when a phase can start
+- how skills are activated
+- which additional gate is triggered
+- when execution must stop
+
+It should not duplicate the complete Rails engineering contract.
 
 ### Source-of-Truth Context
 
-`doc/requirements/**` is the canonical feature contract.
+`doc/requirements/**` owns feature/API behavior and numbered requirement versions.
 
 Requirements own:
 
 - endpoint behavior
-- request and response shape
+- request/response contracts
+- validation and authorization expectations
+- compatibility/removal rules
 - version labels
-- validation expectations
-- authorization requirements
-- compatibility rules
 
-Implementation must adapt to the requirement contract, not the other way around.
+Implementation evidence describes current behavior; it does not redefine the requirement.
 
-### Derived Context Docs
+### Derived Context
 
-`doc/flow/**` and `doc/prd/**` are derived context documents.
+`doc/flow/**`, `doc/prd/**`, and task changelogs are derived records.
 
-They are updated only after verification and contract audit pass.
+They:
 
-- Flow docs are integration-facing technical references.
-- PRD docs are product/scope/acceptance references.
-- Both mirror their source requirement path.
-- Neither may invent independent API versions.
+- are updated only after required quality gates pass
+- mirror requirement ownership where required
+- reference requirement-owned versions
+- describe verified implementation and migration impact
+- cannot override requirements
 
 ### Context Engineering
 
-Context engineering is the discipline of loading the right information before execution.
+Context engineering is the deliberate selection, classification, expansion, and release of context needed for correct execution.
 
-In this toolkit, context loading is explicit:
+Normative Phase -1 classifies sources as:
 
-1. read relevant `AGENTS.md` normative sections
-2. read the target requirement document and all requirement versions
-3. scan existing implementation surfaces
-4. map requirement clauses to code and specs
-5. produce a plan before editing code
+- `ENTRYPOINT`
+- `NORMATIVE`
+- `SOURCE`
+- `PROCEDURE`
+- `DERIVED`
+- `EVIDENCE`
+- `EXPLANATORY`
 
-The goal is to avoid context pollution while keeping the implementation traceable.
+It produces:
+
+```text
+CONTEXT INVENTORY
+CONTEXT SUMMARY
+Ready for Phase 0: YES/NO
+```
+
+Material gaps block planning.
+
+### Progressive Disclosure
+
+Progressive disclosure means loading the minimum complete context for the current phase.
+
+It does not mean omitting correctness-relevant authority or dependencies.
+
+Rules:
+
+- load current-phase procedures, not all skills
+- expand context when references/dependencies/conflicts require it
+- carry artifacts and decisions between phases
+- release unrelated procedure text when possible
+- re-evaluate conclusions when context expands
+
+### Skill
+
+A skill is a reusable phase-specific procedure, not an independent authority.
+
+Every skill defines:
+
+- Purpose
+- Activation
+- Required Inputs
+- Normative References
+- Procedure
+- Required Output
+- Completion Check
+- Failure Modes
+- Handoff
+
+Canonical source schema:
+
+- `templates/SKILL_TEMPLATE.md`
+
+Consumer installation path:
+
+- `doc/templates/SKILL_TEMPLATE.md`
+
+### Skill Invocation
+
+Activated skills are classified as `PROCEDURE` and require:
+
+```text
+SKILL INVOCATION
+- Skill:
+- Phase:
+- Trigger:
+- Inputs resolved:
+- Required output:
+- Status: ACTIVATED/COMPLETED/BLOCKED/NOT_REQUIRED/UNAVAILABLE
+- Notes:
+```
+
+Missing skills never waive mandatory behavior. The normative contract is the fallback.
+
+### Phase Ownership
+
+Each current skill has one primary responsibility:
+
+- `context_loading.md` — Phase -1 context readiness
+- `rails_api_feature.md` — Phase 0 through implementation
+- `quality_gate_review.md` — verification/review and readiness decision
+- `flow_prd_update.md` — post-verification derived docs
+
+Handoffs prevent one skill from silently owning the whole lifecycle.
 
 ### Contract-First Execution
 
-Contract-first execution means the requirement document defines the expected behavior before code changes begin.
+Requirements are extracted before implementation planning.
 
-The agent or engineer must extract:
-
-- endpoints
-- params
-- response fields
-- validations
-- error cases
-- version deltas
-- traceability mapping
-
-Only then may implementation planning proceed.
-
-### Planning-First Gate
-
-The planning-first gate prevents premature code edits.
-
-When a task invokes `Execute per AGENTS.md`, phases 0-2 are no-code phases:
-
-- Phase 0: contract extraction
-- Phase 1: repo scan
-- Phase 2: implementation plan
-
-Implementation starts only after explicit confirmation.
-
-### Verification-Driven Development
-
-Verification-driven development means implementation is not complete when code is written.
-
-It is complete only after:
-
-1. contract alignment check
-2. `bin/verify`
-3. `bin/contract_audit --all`
-4. docs/changelog update
-5. final report with checks and traceability
-
-### Contract Drift Audit
-
-`bin/contract_audit` is the static guardrail against contract drift.
-
-It checks for violations such as:
-
-- edited requirement docs during implementation
-- hand-edited generated Swagger YAML
-- database-specific SQL tokens
-- route style violations
-- ad-hoc controller JSON rendering
-- Flow/PRD template drift
-
-### Contract Traceability Matrix
-
-The Contract Traceability Matrix maps requirement clauses to implementation evidence.
+Required mapping:
 
 ```text
 requirement clause -> endpoint/field -> implementation file -> spec file -> status
 ```
 
-This gives reviewers a compact way to verify that implementation, tests, and docs remain aligned.
+This becomes the Contract Traceability Matrix.
 
-### Discrepancy Taxonomy
+### Planning-First Gate
 
-Discrepancies use two labels:
+Phase 0–2 planning remains no-code when the normative planning-first gate applies.
 
-- `[IMPL]` means code does not match the requirement and should be fixed.
-- `[DOC]` means the requirement text conflicts with model/DB reality and should be reported, not silently edited.
+Implementation starts only after:
 
-This separates implementation issues from upstream contract issues.
+```text
+CONFIRM_TO_IMPLEMENT? (yes/no)
+```
+
+receives explicit confirmation.
+
+### Verification-Driven Development
+
+Implementation completion does not equal task completion.
+
+A task proceeds through:
+
+1. contract alignment
+2. `bin/verify` or required full profile
+3. `bin/contract_audit --all`
+4. `agentic_audit` when triggered
+5. compliance/traceability review
+6. `QUALITY GATE DECISION: PASS/BLOCKED`
+
+Only `PASS` permits derived docs.
+
+### Quality Gate Decision
+
+The quality decision is binary:
+
+- `PASS` — all required current-diff evidence is green; documentation phase is allowed.
+- `BLOCKED` — a required input, command, audit, compliance rule, or traceability row is missing/failing/stale.
+
+It is documentation readiness, not merge approval.
+
+### Contract Drift Audit
+
+`bin/contract_audit` protects Rails API and documentation invariants, including requirement edits, generated Swagger, route style, DB-specific SQL, controller JSON ownership, and Flow/PRD structure.
+
+### Agentic Workflow Audit
+
+`agentic_audit` protects the workflow layer:
+
+- required files
+- skill schema/order
+- authority statements
+- unique skill titles
+- registry synchronization
+- ownership declarations
+- README index
+- local references
+- template mapping
+- AGENTS-to-skill links
+
+It supports toolkit and consumer scopes and runs conditionally for agentic surfaces.
 
 ### Structured Context Templates
 
-`templates/FLOW_TEMPLATE.md` and `templates/PRD_TEMPLATE.md` are context schemas.
+The toolkit provides:
 
-They keep derived docs predictable, searchable, and integration-ready.
+- `templates/SKILL_TEMPLATE.md`
+- `templates/FLOW_TEMPLATE.md`
+- `templates/PRD_TEMPLATE.md`
 
-The point is not documentation volume. The point is stable structure for humans and agents.
+Templates make procedure and derived-doc structure predictable and auditable.
+
+### Discrepancy Taxonomy
+
+- `[IMPL]` — implementation does not match requirements and must be fixed before quality-gate `PASS`.
+- `[DOC]` — requirement text conflicts with model/DB reality; report without silently rewriting requirements.
 
 ## What This Toolkit Is Not
 
-This toolkit is not:
-
 - a chatbot prompt pack
-- a general-purpose agent framework
-- a replacement for Rails conventions
-- a no-code automation layer
-- a runtime for autonomous production agents
+- a general-purpose autonomous-agent runtime
+- a multi-agent orchestration platform
+- a no-code automation system
+- a replacement for requirements or Rails conventions
+- a system that infers command success without evidence
 
-It is a workflow and verification layer for reliable Rails API development with human or AI-assisted execution.
+It is a repository-level execution, context, skill, and verification system for reliable Rails API delivery.
 
 ## Preferred Terms
 
-Use these terms when describing this project:
-
 - Agent Operating Contract
-- Contract-First Execution
+- Thin Harness
+- Fat Skills
 - Context Engineering
+- Progressive Disclosure
+- Source-of-Truth Context
+- Derived Context
+- Contract-First Execution
+- Planning-First Gate
+- Skill Invocation
+- Phase Ownership
 - Verification-Driven Development
+- Quality Gate Decision
 - Contract Drift Audit
+- Agentic Workflow Audit
 - Requirement-to-Code Traceability
-- Structured Context Docs
-- AI-Assisted SDLC
+- Structured Context Templates
 - Agent-Ready Engineering Workflow
+- AI-Assisted SDLC
 
-Avoid weak or vague terms when describing the system:
+Avoid vague descriptions such as:
 
 - prompt pack
 - AI wrapper

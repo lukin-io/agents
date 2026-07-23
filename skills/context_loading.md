@@ -1,33 +1,36 @@
 # Skill: Context Loading
 
-Use this skill to execute normative **Phase -1: Context Loading** from `AGENTS.md`.
+Use this skill to execute normative **Phase -1: Context Loading** before planning.
 
-This skill is an execution aid. `AGENTS.md` and `AGENTS_CONTRACT.md` remain authoritative.
+This skill is an execution aid. `AGENTS.md`, `AGENTS_CONTRACT.md`, and the target requirements remain authoritative.
 
 ## Purpose
 
-Load the minimum complete context required for correct planning without flooding the working context with unrelated files.
+Load, classify, and validate the minimum complete context required for correct planning without flooding active context with unrelated files.
 
-Minimum complete context includes every normative rule, requirement version, activated procedure, dependency, and implementation surface that can materially affect correctness.
+The skill produces the `CONTEXT INVENTORY`, `CONTEXT SUMMARY`, and Phase 0 readiness decision.
 
 ## Activation
 
-Activate this skill before Phase 0 for tasks involving:
+Activate this skill when repository work requires understanding requirements, implementation, verification evidence, or derived docs before planning.
+
+Typical triggers:
 
 - `Execute per AGENTS.md`
-- a requirement document
-- an API endpoint or response contract
+- requirement-driven API work
 - feature implementation, refactor, or bug fix
-- Flow/PRD updates
-- contract audit or discrepancy review
+- contract discrepancy review
+- Flow/PRD work requiring source and evidence discovery
 
-Invocation status should begin as:
+Do not activate it as a substitute for Phase 0 contract extraction or implementation.
+
+Initial invocation record:
 
 ```text
 SKILL INVOCATION
 - Skill: skills/context_loading.md
 - Phase: Phase -1
-- Trigger: repository task requires context loading before planning
+- Trigger:
 - Inputs resolved: YES/NO
 - Required output: CONTEXT INVENTORY + CONTEXT SUMMARY
 - Status: ACTIVATED/BLOCKED
@@ -37,62 +40,131 @@ SKILL INVOCATION
 ## Required Inputs
 
 - task id or stable task label
-- feature label
-- requirement path under `doc/requirements/**`
-- expected Flow path under `doc/flow/**`
-- expected PRD path under `doc/prd/**`
+- feature label or target concern
+- requirement path under `doc/requirements/**`, or enough information to locate it
+- expected Flow/PRD paths when applicable
+- repository access sufficient to inspect relevant evidence
 
-If the requirement path is unknown, locating it is part of Phase -1. Do not infer a contract from derived docs.
+If the requirement path is unknown, locating it is part of the procedure. Do not infer behavior from derived docs.
 
-## Context Classifications
+## Normative References
 
-Classify each source as:
+Load and follow:
 
-- `ENTRYPOINT` — root loading and authority instructions.
-- `NORMATIVE` — mandatory workflow and engineering rules.
-- `SOURCE` — canonical requirement contracts.
-- `PROCEDURE` — activated skill files.
-- `DERIVED` — Flow/PRD/changelog records.
-- `EVIDENCE` — code, routes, schema, specs, generated docs, migrations, seeds, and config.
-- `EXPLANATORY` — guides, concepts, examples, and migration notes.
+- `AGENTS.md`:
+  - Mandatory Load Order
+  - Authority and Precedence
+  - Phase -1 Context Loading
+  - Skill Invocation Contract
+- `AGENTS_CONTRACT.md` sections relevant to the target task and every normative dependency they reference
+- target `doc/requirements/**` sources and all applicable versions
 
-This skill must classify itself as `PROCEDURE` in the context inventory.
+Use `docs/**` only as explanatory context.
 
-## Steps
+## Procedure
 
-1. Read `AGENTS.md`.
-2. Identify the task, feature, and requirement source.
-3. Read relevant `AGENTS_CONTRACT.md` sections plus every normative dependency they reference.
-4. Read the target requirement document and all requirement-owned versions.
-5. Identify the latest requirement-owned version label without inventing a new version.
-6. Identify other candidate skills for later phases without bulk-loading their full bodies.
-7. Locate mirrored Flow/PRD docs and classify them as `DERIVED`.
-8. Scan implementation evidence:
-   - routes
-   - controllers
-   - models
-   - blueprints
-   - policies
-   - services, queries, or jobs
-   - request, policy, model, blueprint, and rswag specs
-   - migrations, schema, seeds, and relevant configuration
-9. Expand context only for discovered dependencies, references, conflicts, or ambiguity.
-10. Build the context inventory and summary.
-11. Report only relevant excerpts, paths, signatures, and compact behavior summaries.
+### Step 1 — Identify Task and Authority
 
-## Progressive Disclosure
+Identify:
 
-- Do not load every skill or explanatory document by default.
-- Load sources that are authoritative, directly referenced, dependency-owning, procedure-owning for the current phase, or needed to resolve ambiguity.
-- Requirement documents and all their relevant versions are mandatory.
-- Derived docs may help navigation but cannot own behavior.
-- Evidence describes current behavior but cannot rewrite the requirement contract.
-- Later-phase skills may be identified by path without loading their full body until activation.
-- Update the inventory whenever later investigation adds context.
+- task and feature/concern
+- target requirement source
+- expected derived-doc paths
+- current phase and likely later skills
 
-## Expected Output
+Load this skill as `PROCEDURE` context.
+
+### Step 2 — Load Normative Context
+
+Load:
+
+- root `AGENTS.md`
+- relevant `AGENTS_CONTRACT.md` sections
+- every referenced normative dependency that can affect correctness
+
+Do not treat a partial contract excerpt as complete when it references another mandatory section.
+
+### Step 3 — Load Source-of-Truth Requirements
+
+Read the target requirement and all applicable requirement-owned versions.
+
+Identify:
+
+- latest requirement-owned version label, if any
+- cumulative behavior
+- explicit removals or breaking changes
+- unresolved requirement ambiguity
+
+Do not invent a version or allow implementation evidence to redefine requirements.
+
+### Step 4 — Locate Derived Context
+
+Locate mirrored Flow/PRD and related changelog docs.
+
+Classify them as `DERIVED`. Use them for navigation and verified history only.
+
+### Step 5 — Scan Implementation Evidence
+
+Inspect relevant:
+
+- routes
+- controllers
+- models
+- blueprints
+- policies
+- services, queries, and jobs
+- request, policy, model, blueprint, and rswag specs
+- migrations, schema, seeds, generated API docs, and configuration
+
+Classify these sources as `EVIDENCE`.
+
+### Step 6 — Expand by Dependency
+
+Load more context only when a discovered reference, dependency, conflict, or ambiguity requires it.
+
+Later-phase skills may be identified by path without loading their full bodies until activation.
+
+Update the inventory whenever context expands and re-evaluate affected conclusions.
+
+### Step 7 — Classify Context
+
+Use exactly one primary classification per source:
+
+- `ENTRYPOINT`
+- `NORMATIVE`
+- `SOURCE`
+- `PROCEDURE`
+- `DERIVED`
+- `EVIDENCE`
+- `EXPLANATORY`
+
+### Step 8 — Evaluate Gaps and Readiness
+
+Record unresolved context gaps.
+
+A gap is material when it can change:
+
+- contract interpretation
+- implementation plan
+- authorization or response behavior
+- test scope
+- verification profile
+- documentation ownership
+
+Material gaps block Phase 0.
+
+## Required Output
 
 ```text
+SKILL INVOCATION
+- Skill: skills/context_loading.md
+- Phase: Phase -1
+- Trigger:
+- Inputs resolved: YES/NO
+- Required output: CONTEXT INVENTORY + CONTEXT SUMMARY
+- Status: COMPLETED/BLOCKED
+- Notes:
+
 CONTEXT INVENTORY
 | Path/Source | Classification | Why loaded | Status |
 | --- | --- | --- | --- |
@@ -111,42 +183,44 @@ CONTEXT SUMMARY
 - Ready for Phase 0: YES/NO
 ```
 
+Targeted excerpts must respect `AGENTS_CONTRACT.md` limits.
+
 ## Completion Check
 
-Before Phase 0, confirm:
+The skill is `COMPLETED` only when:
 
 - task and requirement source are identified
-- relevant normative rules were read
-- all requirement-owned versions were considered
-- current-phase procedures were identified and activated
-- source, procedure, derived, evidence, and explanatory context are distinguished
-- implementation and spec surfaces were scanned sufficiently
+- relevant normative rules and dependencies were loaded
+- all applicable requirement versions were considered
+- context sources are correctly classified
+- implementation and spec evidence was scanned sufficiently for planning
+- current-phase procedures are activated or explicitly not required/unavailable
 - no material unresolved gap can change the plan
 - no code change was made
-
-On success, update the invocation record:
-
-```text
-SKILL INVOCATION
-- Skill: skills/context_loading.md
-- Phase: Phase -1
-- Trigger: repository task requires context loading before planning
-- Inputs resolved: YES
-- Required output: CONTEXT INVENTORY + CONTEXT SUMMARY
-- Status: COMPLETED
-- Notes: Ready for Phase 0
-```
+- `Ready for Phase 0: YES`
 
 ## Failure Modes
 
-Set the invocation status to `BLOCKED`, output `Ready for Phase 0: NO`, and stop when:
+Set the invocation to `BLOCKED`, output `Ready for Phase 0: NO`, and stop when:
 
-- the requirement source is missing
-- requirement version ownership is ambiguous
-- a referenced normative file or requirement version cannot be loaded
-- multiple primary Flow/PRD docs appear to own the same feature
-- a material implementation dependency is unresolved
-- docs and implementation disagree in a way that changes behavior
+- requirement source or version authority is missing/ambiguous
+- a referenced normative source cannot be loaded
+- multiple primary derived docs create unresolved ownership
+- a material dependency is unresolved
 - an authority conflict cannot be resolved
+- evidence and requirements disagree in a way that makes planning unsafe
 
 Use `[IMPL]` and `[DOC]` labels where the discrepancy taxonomy applies.
+
+## Handoff
+
+On `COMPLETED`:
+
+- next skill: `skills/rails_api_feature.md` when Rails API implementation is required
+- next phase otherwise: applicable Phase 0 or direct review procedure under the contract
+- artifact carried forward: `CONTEXT INVENTORY` and `CONTEXT SUMMARY`
+
+On `BLOCKED`:
+
+- report the missing source, authority conflict, or material dependency
+- resolve it before Phase 0 or any code change

@@ -2,15 +2,16 @@
 
 This document records the migration from the original unified Rails API contract toolkit to an agent-ready workflow system.
 
-The migration principle is unchanged: preserve existing contract discipline, make context and phase ownership explicit, extract reusable procedures, and add enforcement incrementally.
+Migration principle: preserve existing contract discipline, make context and phase ownership explicit, extract reusable procedures, and add enforcement only after structures stabilize.
 
-## Architecture After Stage 16
+## Architecture After Stage 17
 
 ```text
 AGENTS.md
   -> small normative entrypoint
   -> Phase -1 context loading
-  -> skill invocation and authority boundaries
+  -> skill invocation
+  -> conditional agentic audit gate
 
 AGENTS_CONTRACT.md
   -> preserved complete Rails API contract
@@ -18,17 +19,23 @@ AGENTS_CONTRACT.md
 
 skills/**
   -> phase-owned reusable procedures
-  -> canonical structure and explicit handoffs
+  -> canonical schema, outputs, completion, failure, and handoffs
 
 templates/SKILL_TEMPLATE.md
-  -> source authoring schema
-  -> installed as doc/templates/SKILL_TEMPLATE.md in consumer repos
+  -> source skill schema
+  -> installed as doc/templates/SKILL_TEMPLATE.md
 
-verify / contract_audit
-  -> deterministic verification and drift gates
+verify
+  -> implementation/test/security verification profiles
 
-docs/**
-  -> explanatory and migration guidance
+contract_audit
+  -> Rails API and documentation contract drift checks
+
+agentic_audit
+  -> toolkit/consumer skill, docs, registry, reference, and contract-link checks
+
+.github/workflows/agentic-audit.yml
+  -> syntax and toolkit audit CI evidence
 ```
 
 ## Migration Principles
@@ -39,126 +46,126 @@ docs/**
 - keep verification and contract audit mandatory
 - use progressive context disclosure without omitting dependencies
 - give each skill one primary phase responsibility
-- carry artifacts and decisions between phases, not unnecessary procedure text
-- add automated enforcement only after the documented structure stabilizes
+- carry artifacts and decisions between phases
+- mechanically enforce structures only after their schema stabilizes
+- do not claim command success without executed or inspected evidence
 
-## Completed Migration Stages
+## Completed Stages
 
-### Stage A — Positioning and Vocabulary
+### A — Positioning and Vocabulary
 
 **Status:** Done
-
-Implemented:
 
 - agent-ready README positioning
-- Agent Operating Contract terminology
-- `docs/CONCEPTS.md`
-- `docs/WORKFLOW.md`
+- Agent Operating Contract vocabulary
+- concepts and workflow guides
 
-### Stage B — Quality-Gate Model
+### B — Quality-Gate Model
 
 **Status:** Done
 
-Implemented:
-
-- `docs/QUALITY_GATES.md`
-- explicit verification/audit evidence model
+- quality-gate documentation
+- exact command evidence
 - `QUALITY GATE DECISION: PASS/BLOCKED`
 
-### Stage C — Initial Skill Registry
+### C — Skill Registry
 
 **Status:** Done
 
-Implemented:
+- context loading
+- Rails API feature implementation
+- quality gate review
+- Flow/PRD update
 
-- `skills/README.md`
-- `skills/context_loading.md`
-- `skills/rails_api_feature.md`
-- `skills/quality_gate_review.md`
-- `skills/flow_prd_update.md`
-
-### Stage D — AGENTS Orientation Split
+### D — AGENTS Orientation Split
 
 **Status:** Done
 
-Implemented:
+- small root entrypoint
+- original contract preserved as `AGENTS_CONTRACT.md`
+- authority and loading boundaries
 
-- small root `AGENTS.md` entrypoint/harness
-- original full contract preserved as `AGENTS_CONTRACT.md`
-- mandatory authority and load-order boundaries
-
-### Stage E — Stricter Context Loading
+### E — Normative Context Loading
 
 **Status:** Done
 
-Implemented normative Phase -1:
-
+- Phase -1
 - source classifications
-- `CONTEXT INVENTORY`
-- `CONTEXT SUMMARY`
-- dependency-driven expansion
-- `Ready for Phase 0: YES/NO`
+- context inventory/summary
+- dependency expansion
 - material-gap stop gate
 
-### Stage F — Skill Invocation Contract
+### F — Skill Invocation Contract
 
 **Status:** Done
 
-Implemented:
+- activation, precedence, lifecycle, statuses, and fallback
+- phase-by-phase skill loading
+- invocation evidence
 
-- activation rules
-- `PROCEDURE` context classification
-- invocation lifecycle
-- statuses: `ACTIVATED`, `COMPLETED`, `BLOCKED`, `NOT_REQUIRED`, `UNAVAILABLE`
-- precedence and fallback rules
-- phase-by-phase loading boundaries
-
-### Stage G — Quality Gate Skill
+### G — Quality Gate Skill
 
 **Status:** Done
 
-Implemented:
-
+- profile selection
 - exact command/evidence collection
-- profile-selection rationale
 - compliance and traceability review
-- explicit derived-doc readiness decision
+- binary documentation-readiness decision
 
-### Stage H — README Consolidation
+### H — README Consolidation
 
 **Status:** Done
 
-README now exposes:
-
-- authority model
-- Phase -1
-- skill invocation
-- quality-gate decision
-- complete docs/skills/templates map
+- complete architecture map
+- docs/skills/templates/tooling index
 - consumer installation layout
 
-### Stage I — Skill Consistency Audit
+### I — Skill Consistency Audit
+
+**Status:** Done
+
+- canonical `SKILL_TEMPLATE`
+- normalized skill section order
+- one primary phase owner per skill
+- explicit cross-phase handoffs
+- reduced normative duplication
+
+### J — Automated Skills and Docs Audit
 
 **Status:** Done
 
 Implemented:
 
-- `templates/SKILL_TEMPLATE.md`
-- canonical section order for every skill
-- one primary phase owner per skill
-- stable output and handoff for each skill
-- normalized registry ownership map
-- reduced overlap between implementation, verification, and docs skills
+- `agentic_audit`
+- toolkit and consumer scope auto-detection
+- required-file checks
+- canonical skill-schema checks
+- unique skill-title checks
+- registry/file synchronization
+- phase ownership-map checks
+- README index checks
+- repository-local reference checks
+- source/consumer template mapping checks
+- AGENTS-to-skill link checks
+- `docs/AGENTIC_AUDIT.md`
+- conditional audit gate in `AGENTS.md`
+- quality-skill and quality-doc integration
+- executable script mode
+- `.github/workflows/agentic-audit.yml`
 
-Ownership chain:
+Current CI evidence:
 
 ```text
-context_loading
-  -> rails_api_feature
-  -> quality_gate_review
-  -> flow_prd_update when required
-  -> final report
+Workflow: Agentic workflow audit
+Run: 30012816440
+Commit: 33390cb918c9af95aea0529561ad63425fc98736
+Conclusion: success
+Steps:
+- Check Ruby syntax: success
+- Run toolkit audit: success
 ```
+
+The audit is conditional for agentic surfaces. Ordinary feature changes do not receive an unnecessary additional gate.
 
 ## Preserved Invariants
 
@@ -166,41 +173,26 @@ The migration did not intentionally alter:
 
 - API envelope and status-code rules
 - Blueprinter ownership
-- authorization/search/pagination conventions
+- Pundit/Ransack/Kaminari conventions
 - requirement read-only policy
 - requirement-owned versions
-- Flow/PRD structure and ownership rules
-- verification command order
+- Flow/PRD ownership and structure
+- verification profile semantics
+- API contract-audit behavior
 - final evidence requirements
 
-## Remaining Stage J — Automated Skills and Docs Audit
+## Remaining K — Final Integration Audit
 
 **Status:** Next
 
-Goal: enforce the stabilized structure mechanically.
-
-Planned checks:
-
-- required skill headings and order
-- authority statement presence
-- unique skill titles and ownership
-- registry entries match skill files
-- README references exist
-- local Markdown/script references resolve
-- required contract/template files exist
-- expected consumer-installation mappings are documented
-
-The preferred implementation is a focused supplemental audit tool rather than unsafe large edits to the existing mature `contract_audit` core.
-
-## Remaining Stage K — Final Integration Audit
-
-**Status:** Planned
-
 Final work:
 
-- run repository-wide consistency review
-- verify docs, contracts, skills, templates, and tooling agree
-- update PR title/body to final scope
-- synchronize changelog and migration status
-- document checks that were run and checks unavailable in this repository-only environment
-- leave the PR ready for owner review/merge without merging automatically
+- compare the complete PR against `main`
+- inspect all changed files and commit/check status
+- verify AGENTS, docs, skills, templates, scripts, and CI agree
+- run/inspect latest automated audit evidence on final head
+- correct residual stale wording or broken ownership
+- update PR title/body to final umbrella scope
+- synchronize this migration doc and `changelog.md`
+- document checks that were executed and checks unavailable in this toolkit-only repository
+- leave PR ready for owner review/merge without merging automatically

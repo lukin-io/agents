@@ -1,153 +1,225 @@
 # Skill: Rails API Feature Implementation
 
-Use this skill to implement a Rails API feature from a requirement contract.
+Use this skill for contract extraction, repository scan, planning, confirmation, and implementation of a Rails API feature.
+
+This skill is an execution aid. `AGENTS.md`, `AGENTS_CONTRACT.md`, and the target requirements remain authoritative.
 
 ## Purpose
 
-Turn a requirement document into a small, verifiable Rails API implementation with matching specs, docs, and final evidence.
+Turn a requirement contract into a minimal Rails API implementation with matching tests and a complete handoff to verification.
 
-## When To Use
+This skill owns Phase 0 through implementation. It does not own quality-gate execution or derived documentation updates.
 
-Use this skill for:
+## Activation
 
-- new API endpoints
-- endpoint behavior changes
-- response-shape changes
-- validation changes
-- auth/policy changes
-- blueprint updates
-- feature-owned Flow/PRD updates after verification
+Activate this skill when:
+
+- Phase -1 completed with `Ready for Phase 0: YES`
+- the task adds or changes Rails API behavior
+- the target requirement source and applicable versions are known
+
+Typical triggers:
+
+- new endpoint
+- endpoint behavior or response-shape change
+- validation or authorization change
+- model, blueprint, route, or policy change
+- Rails API bug fix or contract-preserving refactor
+
+Do not activate this skill for documentation-only work or verification-only review.
+
+Initial invocation record:
+
+```text
+SKILL INVOCATION
+- Skill: skills/rails_api_feature.md
+- Phase: Phase 0 through implementation
+- Trigger:
+- Inputs resolved: YES/NO
+- Required output: plan gate + implemented change + FEATURE IMPLEMENTATION HANDOFF
+- Status: ACTIVATED/BLOCKED
+- Notes:
+```
 
 ## Required Inputs
 
-- task id
+- task id or stable task label
 - feature label
-- requirement doc path
-- expected Flow doc path
-- expected PRD doc path
+- completed Phase -1 `CONTEXT INVENTORY` and `CONTEXT SUMMARY`
+- target requirement path and all applicable versions
+- expected Flow and PRD paths
+- existing implementation/spec surfaces
+- known dependencies and discrepancies
 
-## Phase 0: Contract Extraction
+## Normative References
+
+Load and follow:
+
+- `AGENTS.md` Phase -1 and Skill Invocation Contract
+- `AGENTS_CONTRACT.md` sections:
+  - Authority and Precedence
+  - Edit Scope
+  - Invocation Template
+  - Workflow Engine
+  - Non-Negotiable Engineering Rules
+  - Canonical Envelope and Error Contract
+  - Representational Invariants
+  - Safe Defaults
+  - Contract Alignment Check
+  - Tests and Required Coverage
+  - Contract Traceability Matrix
+- target `doc/requirements/**` sources and all applicable versions
+
+Use Flow/PRD docs only as derived context.
+
+## Procedure
+
+### Step 1 — Phase 0 Contract Extraction
 
 No code changes.
 
 Extract:
 
-- method and path
-- auth requirements
-- params
-- success status
-- response shape
-- required and optional fields
-- validation rules
-- error statuses
-- version deltas
-- compatibility expectations
+- endpoints, methods, paths, auth, and success statuses
+- path/query/body params with types, defaults, enums, and requiredness
+- response fields, nesting, arrays, optionals, and timestamps
+- validations and error statuses
+- cumulative requirement-version deltas
+- compatibility and removal rules
 
-Required output:
+Create or update the Contract Traceability Matrix:
 
 ```text
-CONTRACT TRACEABILITY MATRIX
 | Requirement clause | Endpoint/Field | Implementation file | Spec file | Status |
 | --- | --- | --- | --- | --- |
 ```
 
-## Phase 1: Repo Scan
+### Step 2 — Phase 1 Repository Scan
 
 No code changes.
 
-Find existing:
+Inspect relevant:
 
 - routes
 - controllers
 - models
 - blueprints
 - policies
-- services/queries
-- specs
-- migrations
-- seeds
-- changelog fragments
-- Flow/PRD docs
+- services, queries, and jobs
+- request, model, blueprint, policy, and rswag specs
+- migrations, schema, seeds, and configuration
+- existing changelog, Flow, and PRD references
 
-Summarize current behavior and reuse surfaces when possible.
+Summarize current behavior, reusable surfaces, and detected discrepancies.
 
-## Phase 2: Plan
+### Step 3 — Phase 2 Plan and Stop Gate
 
 No code changes.
 
-Plan:
+Produce:
 
-- models/associations/validations/enums
-- database changes
-- routes/controllers
-- blueprints
-- policies
-- services/queries only when justified
-- specs
-- seeds if needed
-- docs/changelog updates after verification
+- required components
+- file-by-file actions: `NEW`, `MODIFY`, `DELETE`
+- responsibilities and short `OLD -> NEW` previews
+- test mapping and authorization matrix
+- edge/null/boundary coverage
+- risks and `[IMPL]`/`[DOC]` discrepancies
 
-End with:
+End planning-first mode with:
 
 ```text
 CONFIRM_TO_IMPLEMENT? (yes/no)
 ```
 
-## Phase 3: Implementation
+Do not implement before explicit confirmation when the normative stop gate applies.
+
+### Step 4 — Implementation
 
 After confirmation:
 
-- implement minimal diffs
-- keep Rails-way/KISS
-- use Blueprinter for `data` payloads
+- implement minimal Rails-way/KISS diffs
+- preserve requirement-owned request/response contracts
+- keep Blueprinter responsible for `data`
 - keep controllers responsible for envelopes
-- use Pundit for authorization
-- use Ransack for search/filtering when applicable
-- use Kaminari for pagination when applicable
-- avoid ad-hoc response shapes
-- avoid undocumented API contract changes
+- use Pundit, Ransack, and Kaminari where applicable
+- use database constraints and DB-agnostic queries
+- avoid N+1 behavior on rendered associations
+- add or update required tests and factories
+- do not update Flow/PRD/changelog artifacts prematurely
 
-## Phase 4: Verification
+### Step 5 — Implementation Handoff Preparation
 
-Run:
+Before handoff:
 
-```bash
-bin/verify
-bin/contract_audit --all
+- update traceability rows with actual implementation and spec paths
+- identify changed schema/seed/process-tooling surfaces
+- list unresolved `[IMPL]` and `[DOC]` discrepancies
+- confirm no intentional contract change exists without requirement authority
+- identify the verification profile likely required without claiming it has run
+
+## Required Output
+
+```text
+SKILL INVOCATION
+- Skill: skills/rails_api_feature.md
+- Phase: Phase 0 through implementation
+- Trigger:
+- Inputs resolved: YES/NO
+- Required output: plan gate + implemented change + FEATURE IMPLEMENTATION HANDOFF
+- Status: COMPLETED/BLOCKED
+- Notes:
+
+FEATURE IMPLEMENTATION HANDOFF
+- Task / feature:
+- Requirement source and versions:
+- Confirmation received:
+- Files changed:
+- Specs changed:
+- Schema/seed/process-tooling impact:
+- Contract Traceability Matrix status:
+- [IMPL] discrepancies:
+- [DOC] discrepancies:
+- Expected verification profile:
+- Ready for quality gate review: YES/NO
 ```
 
-Use `bin/verify --full` only when required by `AGENTS.md` or explicitly requested.
+## Completion Check
 
-## Phase 5: Derived Docs
+The skill is `COMPLETED` only when:
 
-Only after verification passes:
+- Phase -1 passed
+- contract extraction and repository scan are complete
+- the plan and required stop gate were respected
+- implementation and applicable tests are complete
+- traceability points to actual files
+- no known `[IMPL]` gap makes verification premature
+- no derived documentation was updated before quality gates
+- `Ready for quality gate review: YES`
 
-- update `doc/flow/**`
-- update `doc/prd/**`
-- add `changelogs/unreleased/{TASK_ID}.md`
-
-Flow/PRD docs must mirror the requirement path and must not invent independent API versions.
-
-## Expected Final Output
-
-Final response must include:
-
-- WHAT & HOW
-- RATIONALE
-- CHECKS
-- RULE COMPLIANCE AUDIT
-- Discrepancies Report
-- Contract Traceability Matrix
+Completion does not mean verification passed.
 
 ## Failure Modes
 
-Stop and report when:
+Set the invocation to `BLOCKED` and stop this procedure when:
 
-- requirement contract is missing or ambiguous
-- auth behavior is unclear
-- response shape conflicts with existing blueprint behavior
-- implementation requires a requirement change
-- verification fails
-- contract audit fails
+- Phase -1 is not ready
+- requirement source or version authority is ambiguous
+- required confirmation is missing
+- auth or response behavior cannot be resolved
+- implementation requires an unauthorized requirement change
+- a material dependency is missing
+- tests or traceability cannot be completed sufficiently for verification
 
-Use `[IMPL]` for implementation issues and `[DOC]` for requirement/model reality mismatches.
+Use `[IMPL]` for implementation gaps and `[DOC]` for requirement/model-reality conflicts.
+
+## Handoff
+
+On `COMPLETED`:
+
+- next skill: `skills/quality_gate_review.md`
+- artifact carried forward: `FEATURE IMPLEMENTATION HANDOFF` and Contract Traceability Matrix
+
+On `BLOCKED`:
+
+- report the blocking authority, dependency, discrepancy, or confirmation gap
+- resolve it before verification or documentation work

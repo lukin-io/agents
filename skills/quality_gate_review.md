@@ -2,30 +2,28 @@
 
 Use this skill after implementation and contract alignment, before updating Flow, PRD, or changelog artifacts.
 
-This skill implements the verification procedure. `AGENTS.md`, `AGENTS_CONTRACT.md`, and the target requirements remain authoritative.
+This skill is an execution aid. `AGENTS.md`, `AGENTS_CONTRACT.md`, and the target requirements remain authoritative.
 
 ## Purpose
 
-Produce reviewable evidence that implementation, tests, generated API documentation, security checks when required, and contract-drift checks have passed in the required order.
+Produce reviewable evidence that implementation, tests, generated API documentation, security checks when required, and contract-drift checks passed in the required order.
 
-The skill ends with a binary readiness decision:
+The skill owns verification evidence and the binary documentation-readiness decision:
 
 ```text
 QUALITY GATE DECISION: PASS/BLOCKED
 ```
-
-`PASS` allows the post-verification documentation phase. `BLOCKED` forbids it.
 
 ## Activation
 
 Activate this skill when:
 
 - implementation changes are complete
-- the pre-flight contract alignment check is ready
+- the contract-alignment pre-flight is ready
 - verification must be run or reviewed
-- the task is approaching Flow/PRD/changelog updates or final reporting
+- the task is approaching derived documentation or final reporting
 
-Do not activate this skill as a substitute for implementation tests or contract extraction.
+Do not activate this skill as a substitute for implementation tests, contract extraction, or implementation work.
 
 Initial invocation record:
 
@@ -33,9 +31,9 @@ Initial invocation record:
 SKILL INVOCATION
 - Skill: skills/quality_gate_review.md
 - Phase: Verification/review
-- Trigger: implementation is ready for required quality gates
+- Trigger:
 - Inputs resolved: YES/NO
-- Required output: CHECKS + RULE COMPLIANCE AUDIT + Discrepancies Report + QUALITY GATE DECISION
+- Required output: CHECKS + RULE COMPLIANCE AUDIT + Discrepancies Report + TRACEABILITY STATUS + QUALITY GATE DECISION
 - Status: ACTIVATED/BLOCKED
 - Notes:
 ```
@@ -43,8 +41,8 @@ SKILL INVOCATION
 ## Required Inputs
 
 - task id or stable task label
-- target requirement path
-- requirement versions implemented
+- target requirement path and applicable versions
+- `FEATURE IMPLEMENTATION HANDOFF` or equivalent implementation evidence
 - changed implementation files
 - changed spec files
 - changed schema/seed/process-tooling files, if any
@@ -56,7 +54,7 @@ SKILL INVOCATION
 
 Load and follow:
 
-- `AGENTS.md` skill invocation and authority rules
+- `AGENTS.md` Skill Invocation Contract and authority rules
 - `AGENTS_CONTRACT.md` sections:
   - Contract Alignment Check
   - Verification Checklist
@@ -66,11 +64,15 @@ Load and follow:
   - Final Output Contract
   - Rule Compliance Audit Format
   - Contract Traceability Matrix
-- `docs/QUALITY_GATES.md` as explanatory guidance only
+- target `doc/requirements/**` sources and all applicable versions
 
-## Step 1 — Contract Alignment Pre-Flight
+Use `docs/QUALITY_GATES.md` as explanatory guidance only.
 
-Re-read the target requirement and all applicable versions.
+## Procedure
+
+### Step 1 — Contract Alignment Pre-Flight
+
+Re-read the target requirement and applicable versions.
 
 Confirm:
 
@@ -78,21 +80,21 @@ Confirm:
 - params match names, types, defaults, enums, and requiredness
 - auth and policy behavior match
 - every documented response field is owned by the expected blueprint
-- no undocumented response fields were introduced
+- no undocumented response field was introduced
 - required fields cannot serialize as `null`
-- optional-field behavior matches requirements
+- optional behavior matches requirements
 - validations and statuses match
 - canonical success/error envelopes are used
 - no TODO, placeholder, or unimplemented requirement gap remains
-- current traceability rows point to implementation and spec evidence
+- traceability rows point to implementation and spec evidence
 
 All `[IMPL]` discrepancies must be fixed before command execution.
 
-A `[DOC]` discrepancy may remain only when clearly reported and it does not make the implementation contract ambiguous or unsafe to verify.
+A `[DOC]` discrepancy may remain only when clearly reported and it does not make verification ambiguous or unsafe.
 
-## Step 2 — Select Verification Profile
+### Step 2 — Select Verification Profile
 
-Default command:
+Default:
 
 ```bash
 bin/verify
@@ -110,13 +112,13 @@ only when required by `AGENTS_CONTRACT.md`, including when:
 - schema, migration, structure, or seed surfaces changed
 - `bin/verify`, `bin/contract_audit`, `AGENTS.md`, or `AGENTS_CONTRACT.md` changed
 
-Record the exact selected command and why.
+Record the selected command and reason.
 
-Do not silently replace the required profile with individual checks unless the wrapper is unavailable. If fallback commands are used, record every command and exit code.
+Do not replace a required profile with individual checks unless the wrapper is unavailable. Record every fallback command and exit code.
 
-## Step 3 — Run Verification
+### Step 3 — Run or Inspect Verification
 
-Run the selected verification command.
+Run the selected command, or inspect authoritative execution evidence when command execution is delegated.
 
 Record:
 
@@ -124,39 +126,35 @@ Record:
 - exit code
 - duration when available
 - checks executed
-- checks automatically skipped and the reason
-- failures and the first actionable cause
+- automatic skips and reasons
+- failures and first actionable cause
+- evidence timestamp or commit/diff scope when available
 
-Do not claim a command passed if it was not executed or its result was not available.
+Do not claim a command passed when it was not run or its result was not inspected.
 
-If verification fails:
+A failed, unavailable, uninspectable, or stale required result blocks the skill.
 
-- set invocation status to `BLOCKED`
-- set `QUALITY GATE DECISION: BLOCKED`
-- do not run documentation-update procedures
-- report the failure evidence
+### Step 4 — Run or Inspect Contract Audit
 
-## Step 4 — Run Contract Audit
-
-Only after verification passes, run:
+Only after verification passes, run or inspect:
 
 ```bash
 bin/contract_audit --all
 ```
 
-When an explicit non-standard requirement handoff allowlist is required, record the exact command including every allowed path.
+When a non-standard requirement handoff allowlist is required, record the exact command and paths.
 
 Record:
 
 - exact command
 - exit code
-- each audit check result
+- audit check results
 - failures and affected paths
-- any requirement-handoff exception used
+- requirement-handoff exception used, if any
 
-If contract audit fails, set the decision to `BLOCKED`.
+An audit failure or unjustified allowlist blocks the skill.
 
-## Step 5 — Compliance Review
+### Step 5 — Compliance and Traceability Review
 
 After commands pass, confirm:
 
@@ -169,8 +167,26 @@ After commands pass, confirm:
 - relevant success, failure, edge, and boundary specs exist
 - generated Swagger is driven by specs
 - requirement docs were not improperly edited
-- derived docs have not been updated before the gates
-- Contract Traceability Matrix has no unresolved implementation gaps
+- derived docs were not updated before gates
+- Contract Traceability Matrix has no unresolved implementation gap
+
+### Step 6 — Decide Documentation Readiness
+
+Set:
+
+```text
+QUALITY GATE DECISION: PASS
+```
+
+only when all completion conditions pass.
+
+Otherwise set:
+
+```text
+QUALITY GATE DECISION: BLOCKED
+```
+
+Do not produce an intermediate or assumed-success state.
 
 ## Required Output
 
@@ -180,7 +196,7 @@ SKILL INVOCATION
 - Phase: Verification/review
 - Trigger:
 - Inputs resolved: YES/NO
-- Required output: CHECKS + RULE COMPLIANCE AUDIT + Discrepancies Report + QUALITY GATE DECISION
+- Required output: CHECKS + RULE COMPLIANCE AUDIT + Discrepancies Report + TRACEABILITY STATUS + QUALITY GATE DECISION
 - Status: COMPLETED/BLOCKED
 - Notes:
 
@@ -189,8 +205,10 @@ CHECKS
   - profile/reason:
   - checks executed:
   - auto-skips:
+  - evidence scope:
 - <exact contract audit command>: exit <code>
   - audit results:
+  - evidence scope:
 
 RULE COMPLIANCE AUDIT
 - R1 Contract-first: COMPLIANT/VIOLATED (evidence)
@@ -218,28 +236,41 @@ QUALITY GATE DECISION: PASS/BLOCKED
 
 The skill is `COMPLETED` with `QUALITY GATE DECISION: PASS` only when:
 
-- contract alignment pre-flight passes
+- contract-alignment pre-flight passes
 - all `[IMPL]` discrepancies are resolved
-- required verification command exits `0`
-- required contract-audit command exits `0`
-- compliance review has no violated mandatory rule
+- required verification exits `0`
+- required contract audit exits `0`
+- no mandatory compliance rule is violated
 - traceability has no implementation gap
-- evidence is recorded without fabrication
+- evidence matches the current diff and is recorded without fabrication
 
-On `PASS`, the next allowed procedure is `skills/flow_prd_update.md` when documentation changes are required.
+Completion means documentation readiness, not merge approval.
 
 ## Failure Modes
 
-Set invocation status and decision to `BLOCKED` when:
+Set the invocation and decision to `BLOCKED` when:
 
 - required inputs are missing
 - requirement behavior is ambiguous
 - an `[IMPL]` discrepancy remains
 - verification cannot be run or inspected
 - a required command fails
-- audit uses an unjustified requirement allowlist
+- audit uses an unjustified allowlist
 - mandatory tests or traceability evidence are missing
 - a compliance rule is violated
 - results are stale relative to the current diff
 
-A blocked quality gate cannot be bypassed by editing derived documentation or weakening the skill. Resolve the underlying implementation, contract, environment, or tooling issue first.
+A blocked gate cannot be bypassed by editing derived documentation or weakening the skill.
+
+## Handoff
+
+On `COMPLETED` with `PASS`:
+
+- next skill: `skills/flow_prd_update.md` when derived documentation is required
+- next phase otherwise: final reporting under `AGENTS_CONTRACT.md`
+- artifact carried forward: complete quality-gate output and current traceability matrix
+
+On `BLOCKED`:
+
+- report the failed command, missing evidence, discrepancy, or compliance violation
+- resolve the underlying issue before documentation or final completion claims

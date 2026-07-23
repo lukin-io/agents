@@ -65,8 +65,10 @@ Load and follow:
   - Changelog
   - Final Output Contract
 - target `doc/requirements/**` sources and version headings
-- `templates/FLOW_TEMPLATE.md`
-- `templates/PRD_TEMPLATE.md`
+- `doc/templates/FLOW_TEMPLATE.md`
+- `doc/templates/PRD_TEMPLATE.md`
+
+The toolkit source files for those consumer templates are `templates/FLOW_TEMPLATE.md` and `templates/PRD_TEMPLATE.md`.
 
 Use existing Flow/PRD docs as derived history and implementation references, not behavior authority.
 

@@ -14,6 +14,8 @@ Phase -1 context loading
   -> confirmation gate
   -> implementation
   -> quality gate review
+  -> contract audit
+  -> agentic audit when agentic surfaces changed
   -> QUALITY GATE DECISION
   -> derived docs when PASS
   -> final evidence report
@@ -21,16 +23,16 @@ Phase -1 context loading
 
 The architecture follows **fat skills, thin harness**:
 
-- `AGENTS.md` — small mandatory entrypoint for loading, authority, context, and skill invocation.
+- `AGENTS.md` — mandatory entrypoint for loading, authority, context, and skill invocation.
 - `AGENTS_CONTRACT.md` — preserved complete normative Rails API contract.
 - `skills/**` — reusable phase-specific procedures with stable artifacts and handoffs.
-- `verify` and `contract_audit` — deterministic quality gates.
+- `verify`, `contract_audit`, and `agentic_audit` — deterministic execution, contract, and workflow-integrity gates.
 - `docs/**` — explanatory and migration documentation, never a second authority.
 - `templates/**` — canonical authoring schemas.
 
 ## Authority Model
 
-1. `AGENTS.md` owns repository entry, Phase -1, skill invocation, authority boundaries, and conflicts.
+1. `AGENTS.md` owns repository entry, Phase -1, skill invocation, authority boundaries, and cross-phase gates.
 2. `AGENTS_CONTRACT.md` owns Phase 0 onward, engineering rules, verification order, documentation timing, and final evidence.
 3. `doc/requirements/**` owns feature/API behavior and numbered requirement versions.
 4. `doc/flow/**` and `doc/prd/**` are derived context updated only after green gates.
@@ -46,6 +48,7 @@ The two AGENTS files form one normative contract system. The original full contr
 - **Premature implementation:** planning and confirmation gates happen first.
 - **Contract drift:** implementation is checked against requirement-owned behavior.
 - **Representational drift:** stable response, route, serialization, and docs rules.
+- **Workflow-structure drift:** skills, registry, links, templates, and indexes are audited mechanically.
 - **Verification gaps:** exact command evidence and `PASS/BLOCKED` readiness.
 - **Workflow duplication:** recurring procedures become phase-owned skills.
 - **Unreviewable output:** traceability, discrepancies, checks, and handoffs are explicit.
@@ -57,10 +60,11 @@ The two AGENTS files form one normative contract system. The original full contr
 - `AGENTS.md` — entrypoint, Phase -1, skill invocation, authority, and boundaries.
 - `AGENTS_CONTRACT.md` — complete Rails API workflow and engineering contract.
 
-### Verification tooling
+### Verification and audit tooling
 
 - `verify` — source installed as `bin/verify` in a consumer repository.
 - `contract_audit` — source installed as `bin/contract_audit`.
+- `agentic_audit` — source installed as `bin/agentic_audit`; audits skills/docs/contract links in toolkit or consumer scope.
 
 ### Skills
 
@@ -75,6 +79,7 @@ The two AGENTS files form one normative contract system. The original full contr
 - `docs/CONCEPTS.md` — terminology and system model.
 - `docs/WORKFLOW.md` — compact execution and responsibility map.
 - `docs/QUALITY_GATES.md` — quality-gate explanation.
+- `docs/AGENTIC_AUDIT.md` — automated audit scopes, checks, CLI, and evidence.
 - `docs/WORKFLOW_MIGRATION.md` — staged migration plan.
 - `changelog.md` — research, decisions, stage status, and behavior impact.
 
@@ -150,7 +155,7 @@ CONTEXT SUMMARY
 - Ready for Phase 0: YES/NO
 ```
 
-Context classifications:
+Classifications:
 
 - `ENTRYPOINT`
 - `NORMATIVE`
@@ -179,13 +184,52 @@ Missing skills never waive contract requirements. Execute the normative workflow
 
 ## Quality Gate Decision
 
-The quality review records exact commands, exit codes, checks, skips, audit results, compliance evidence, discrepancies, and traceability.
+The quality review records exact commands, exit codes, skips, audit results, compliance evidence, discrepancies, and traceability.
 
 ```text
 QUALITY GATE DECISION: PASS/BLOCKED
 ```
 
-Only `PASS` permits derived-document updates. Unexecuted, uninspected, failed, or stale command evidence produces `BLOCKED`.
+Only `PASS` permits derived-document updates. Unexecuted, uninspected, failed, or stale evidence produces `BLOCKED`.
+
+## Automated Agentic Audit
+
+Run the audit when changes touch agentic workflow surfaces such as:
+
+- `AGENTS.md` or `AGENTS_CONTRACT.md`
+- `skills/**`
+- `docs/**`
+- `templates/**` or consumer `doc/templates/**`
+- `README.md` or `changelog.md`
+- `agentic_audit` / `bin/agentic_audit`
+- the audit CI workflow
+
+Toolkit source:
+
+```bash
+ruby -c agentic_audit
+ruby agentic_audit --all --scope toolkit
+```
+
+Consumer repository:
+
+```bash
+bin/agentic_audit --all --scope consumer
+```
+
+Checks include:
+
+- required files
+- canonical skill headings/order
+- unique skill titles
+- registry synchronization
+- ownership-map completeness
+- README index
+- local references
+- source/consumer template mapping
+- AGENTS-to-skill links
+
+A failed or uninspected required agentic audit makes the quality-gate decision `BLOCKED`.
 
 ## Expected Consumer Layout
 
@@ -195,7 +239,8 @@ Only `PASS` permits derived-document updates. Unexecuted, uninspected, failed, o
 ├── AGENTS_CONTRACT.md
 ├── bin/
 │   ├── verify
-│   └── contract_audit
+│   ├── contract_audit
+│   └── agentic_audit
 ├── skills/
 │   ├── README.md
 │   ├── context_loading.md
@@ -209,7 +254,7 @@ Only `PASS` permits derived-document updates. Unexecuted, uninspected, failed, o
         └── PRD_TEMPLATE.md
 ```
 
-The scripts compute `APP_ROOT` from `bin/..` and are intended to be copied into `bin/`.
+The scripts compute or detect the consumer app root and are intended to be copied into `bin/`.
 
 ## Consumer Assumptions
 
@@ -233,9 +278,10 @@ The scripts compute `APP_ROOT` from `bin/..` and are intended to be copied into 
 6. Produce the file/test plan and stop for confirmation when required.
 7. Implement and create `FEATURE IMPLEMENTATION HANDOFF`.
 8. Run quality-gate review.
-9. Continue only on `QUALITY GATE DECISION: PASS`.
-10. Update derived docs when required and create `DOC UPDATE HANDOFF`.
-11. Produce the final evidence report.
+9. Run the conditional agentic audit when agentic surfaces changed.
+10. Continue only on `QUALITY GATE DECISION: PASS`.
+11. Update derived docs when required and create `DOC UPDATE HANDOFF`.
+12. Produce the final evidence report.
 
 ## Repository Contents
 
@@ -246,7 +292,12 @@ README.md
 changelog.md
 verify
 contract_audit
+agentic_audit
+.github/
+  workflows/
+    agentic-audit.yml
 docs/
+  AGENTIC_AUDIT.md
   CONCEPTS.md
   QUALITY_GATES.md
   WORKFLOW.md
@@ -271,6 +322,7 @@ templates/
 - Contract-First Execution
 - Verification-Driven Development
 - Quality Gate Decision
+- Agentic Workflow Audit
 - Contract Drift Audit
 - Requirement-to-Code Traceability
 - Skill Registry

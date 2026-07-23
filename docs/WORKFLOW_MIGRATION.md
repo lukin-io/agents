@@ -1,205 +1,206 @@
 # Workflow Migration Notes
 
-This document records the intended migration path from the current unified contract to a clearer agent-ready workflow system.
+This document records the migration from the original unified Rails API contract toolkit to an agent-ready workflow system.
 
-The current workflow already works as a contract-first Rails API implementation system. The migration goal is to make the architecture explicit without losing the strictness that makes the toolkit useful.
+The migration principle is unchanged: preserve existing contract discipline, make context and phase ownership explicit, extract reusable procedures, and add enforcement incrementally.
 
-## Current State
-
-The toolkit currently has:
-
-- one normative contract: `AGENTS.md`
-- one fast verification runner: `verify`
-- one contract drift auditor: `contract_audit`
-- stable Flow and PRD templates
-- concepts and workflow overview docs
-- an initial skill registry
-
-## Target State
-
-The target state is:
+## Architecture After Stage 16
 
 ```text
-AGENTS.md        -> normative authority and operating harness
-skills/**        -> reusable execution procedures
-docs/**          -> adoption, concepts, workflow, and quality gate explanations
-templates/**     -> structured context schemas
-bin/verify       -> verification runner in consumer repos
-bin/contract_audit -> contract drift audit in consumer repos
+AGENTS.md
+  -> small normative entrypoint
+  -> Phase -1 context loading
+  -> skill invocation and authority boundaries
+
+AGENTS_CONTRACT.md
+  -> preserved complete Rails API contract
+  -> Phase 0 onward, engineering rules, verification, docs, final evidence
+
+skills/**
+  -> phase-owned reusable procedures
+  -> canonical structure and explicit handoffs
+
+templates/SKILL_TEMPLATE.md
+  -> source authoring schema
+  -> installed as doc/templates/SKILL_TEMPLATE.md in consumer repos
+
+verify / contract_audit
+  -> deterministic verification and drift gates
+
+docs/**
+  -> explanatory and migration guidance
 ```
 
-## Migration Principle
+## Migration Principles
 
-Do not weaken the existing contract.
+- do not weaken the original contract
+- keep requirements as feature/API source of truth
+- keep Flow/PRD docs derived
+- keep verification and contract audit mandatory
+- use progressive context disclosure without omitting dependencies
+- give each skill one primary phase responsibility
+- carry artifacts and decisions between phases, not unnecessary procedure text
+- add automated enforcement only after the documented structure stabilizes
 
-The migration should:
+## Completed Migration Stages
 
-- keep `AGENTS.md` normative
-- keep requirements as source of truth
-- keep Flow and PRD docs derived
-- keep verification mandatory
-- keep contract audit mandatory
-- add reusable skills around the contract
-- improve context loading discipline
-- make final evidence easier to review
+### Stage A — Positioning and Vocabulary
 
-## Stage A: Positioning
+**Status:** Done
 
-Status: in progress in this PR.
+Implemented:
 
-Goal:
-
-- describe the repository as an agent-ready contract-first workflow toolkit
-- introduce Agent Operating Contract vocabulary
-- explain the execution loop clearly
-
-Files:
-
-- `README.md`
+- agent-ready README positioning
+- Agent Operating Contract terminology
 - `docs/CONCEPTS.md`
 - `docs/WORKFLOW.md`
 
-## Stage B: Quality Gates
+### Stage B — Quality-Gate Model
 
-Status: in progress in this PR.
+**Status:** Done
 
-Goal:
-
-- explain `bin/verify`
-- explain `bin/contract_audit --all`
-- define final report evidence expectations
-- make verification easier to teach and review
-
-Files:
+Implemented:
 
 - `docs/QUALITY_GATES.md`
+- explicit verification/audit evidence model
+- `QUALITY GATE DECISION: PASS/BLOCKED`
 
-## Stage C: Skill Registry
+### Stage C — Initial Skill Registry
 
-Status: in progress in this PR.
+**Status:** Done
 
-Goal:
-
-- move common procedures into explicit reusable skills
-- keep `AGENTS.md` as the authority
-- reduce repeated task instructions
-- improve context discipline
-
-Files:
+Implemented:
 
 - `skills/README.md`
 - `skills/context_loading.md`
 - `skills/rails_api_feature.md`
+- `skills/quality_gate_review.md`
 - `skills/flow_prd_update.md`
 
-## Stage D: AGENTS.md Linking
+### Stage D — AGENTS Orientation Split
 
-Status: planned.
+**Status:** Done
 
-Goal:
+Implemented:
 
-Add a small introductory note to `AGENTS.md` only.
+- small root `AGENTS.md` entrypoint/harness
+- original full contract preserved as `AGENTS_CONTRACT.md`
+- mandatory authority and load-order boundaries
 
-Proposed content:
+### Stage E — Stricter Context Loading
 
-```md
-It acts as the Agent Operating Contract for Rails API implementation work: a single source for context loading, planning gates, implementation rules, verification gates, documentation updates, and final reporting.
+**Status:** Done
 
-Supporting adoption docs:
-- `docs/CONCEPTS.md` defines the agentic workflow vocabulary used by this toolkit.
-- `docs/WORKFLOW.md` summarizes the execution loop for teams adopting the contract.
-- `docs/QUALITY_GATES.md` explains verification and contract audit gates.
-- `skills/README.md` lists reusable execution skills.
-```
+Implemented normative Phase -1:
 
-This stage should not change workflow rules.
+- source classifications
+- `CONTEXT INVENTORY`
+- `CONTEXT SUMMARY`
+- dependency-driven expansion
+- `Ready for Phase 0: YES/NO`
+- material-gap stop gate
 
-## Stage E: Stricter Context Loading
+### Stage F — Skill Invocation Contract
 
-Status: planned.
+**Status:** Done
 
-Potential `AGENTS.md` behavior change:
+Implemented:
 
-- make context loading an explicit sub-step before contract extraction
-- require agents to list loaded source documents
-- require agents to classify docs as source-of-truth or derived context
-- require a short context summary before planning
+- activation rules
+- `PROCEDURE` context classification
+- invocation lifecycle
+- statuses: `ACTIVATED`, `COMPLETED`, `BLOCKED`, `NOT_REQUIRED`, `UNAVAILABLE`
+- precedence and fallback rules
+- phase-by-phase loading boundaries
 
-Potential wording:
+### Stage G — Quality Gate Skill
+
+**Status:** Done
+
+Implemented:
+
+- exact command/evidence collection
+- profile-selection rationale
+- compliance and traceability review
+- explicit derived-doc readiness decision
+
+### Stage H — README Consolidation
+
+**Status:** Done
+
+README now exposes:
+
+- authority model
+- Phase -1
+- skill invocation
+- quality-gate decision
+- complete docs/skills/templates map
+- consumer installation layout
+
+### Stage I — Skill Consistency Audit
+
+**Status:** Done
+
+Implemented:
+
+- `templates/SKILL_TEMPLATE.md`
+- canonical section order for every skill
+- one primary phase owner per skill
+- stable output and handoff for each skill
+- normalized registry ownership map
+- reduced overlap between implementation, verification, and docs skills
+
+Ownership chain:
 
 ```text
-Before Phase 0 output, list loaded context:
-- normative contract sections
-- source requirement docs
-- derived Flow/PRD docs
-- implementation surfaces scanned
-- known context gaps
+context_loading
+  -> rails_api_feature
+  -> quality_gate_review
+  -> flow_prd_update when required
+  -> final report
 ```
 
-This is a logical workflow behavior migration because context engineering is now part of the explicit system.
+## Preserved Invariants
 
-## Stage F: Skill Invocation
+The migration did not intentionally alter:
 
-Status: planned.
-
-Potential `AGENTS.md` behavior change:
-
-- reference skills as optional execution aids
-- require skills to defer to `AGENTS.md`
-- avoid making skills a second authority
-
-Potential wording:
-
-```text
-Skills under `skills/**` are reusable procedures for applying this contract.
-They are not independent authorities.
-If a skill conflicts with AGENTS.md, AGENTS.md wins.
-```
-
-## Stage G: Quality Gate Skill
-
-Status: planned.
-
-Goal:
-
-Add a dedicated quality gate skill once file creation is available.
-
-Proposed path:
-
-```text
-skills/quality_gate_review.md
-```
-
-Purpose:
-
-- collect exact command evidence
-- summarize verification results
-- prepare final CHECKS and audit sections
-
-## Stage H: README Index Completion
-
-Status: planned.
-
-Goal:
-
-Update README to reference:
-
-- `docs/QUALITY_GATES.md`
-- `skills/**`
-- `docs/WORKFLOW_MIGRATION.md`
-
-This keeps the repository self-explanatory from the entrypoint.
-
-## What Should Not Change Yet
-
-Do not change yet:
-
-- envelope rules
-- status code rules
-- docs template rules
-- verification command order
+- API envelope and status-code rules
+- Blueprinter ownership
+- authorization/search/pagination conventions
 - requirement read-only policy
-- Flow/PRD version ownership
-- final report requirements
+- requirement-owned versions
+- Flow/PRD structure and ownership rules
+- verification command order
+- final evidence requirements
 
-Those are already strong and aligned with the target workflow.
+## Remaining Stage J — Automated Skills and Docs Audit
+
+**Status:** Next
+
+Goal: enforce the stabilized structure mechanically.
+
+Planned checks:
+
+- required skill headings and order
+- authority statement presence
+- unique skill titles and ownership
+- registry entries match skill files
+- README references exist
+- local Markdown/script references resolve
+- required contract/template files exist
+- expected consumer-installation mappings are documented
+
+The preferred implementation is a focused supplemental audit tool rather than unsafe large edits to the existing mature `contract_audit` core.
+
+## Remaining Stage K — Final Integration Audit
+
+**Status:** Planned
+
+Final work:
+
+- run repository-wide consistency review
+- verify docs, contracts, skills, templates, and tooling agree
+- update PR title/body to final scope
+- synchronize changelog and migration status
+- document checks that were run and checks unavailable in this repository-only environment
+- leave the PR ready for owner review/merge without merging automatically

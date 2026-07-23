@@ -34,8 +34,8 @@ The architecture follows a **fat skills, thin harness** model:
 
 The repository intentionally has one normative contract system with two layers:
 
-1. `AGENTS.md` governs repository entry, mandatory load order, authority boundaries, and conflict handling.
-2. `AGENTS_CONTRACT.md` governs the complete process, edit scope, implementation rules, verification order, documentation timing, and final reporting.
+1. `AGENTS.md` governs repository entry, mandatory load order, Phase -1 context loading, authority boundaries, and conflict handling.
+2. `AGENTS_CONTRACT.md` governs the complete process from Phase 0 onward, edit scope, implementation rules, verification order, documentation timing, and final reporting.
 3. `doc/requirements/**` in a consumer repository governs feature/API behavior and owns numbered requirement versions.
 4. `doc/flow/**` and `doc/prd/**` are derived context updated only after verification.
 5. `skills/**` are execution aids. They cannot override either AGENTS contract layer or requirement contracts.
@@ -58,7 +58,7 @@ The split does not weaken or replace the original contract: `AGENTS_CONTRACT.md`
 
 ### Normative contract system
 
-- `AGENTS.md` — small Agent Operating Contract entrypoint: load order, authority, boundaries, and system map.
+- `AGENTS.md` — small Agent Operating Contract entrypoint: load order, Phase -1 context loading, authority, boundaries, and system map.
 - `AGENTS_CONTRACT.md` — complete normative Rails API workflow and engineering contract.
 
 ### Verification tooling
@@ -77,7 +77,7 @@ The split does not weaken or replace the original contract: `AGENTS_CONTRACT.md`
 ### Reusable skills
 
 - `skills/README.md` — skill registry and authority rules.
-- `skills/context_loading.md` — deliberate context-loading procedure.
+- `skills/context_loading.md` — reusable procedure implementing Phase -1.
 - `skills/rails_api_feature.md` — feature implementation procedure.
 - `skills/flow_prd_update.md` — derived Flow/PRD update procedure.
 
@@ -99,6 +99,39 @@ For a normal feature task, progressively load only what is needed:
 7. `skills/flow_prd_update.md` only after verification and contract audit pass.
 
 Do not load every explanatory document and skill by default. Progressive disclosure keeps the working context focused, but it must never omit a normative rule or requirement dependency that can affect correctness.
+
+## Normative Phase -1: Context Loading
+
+Before Phase 0 planning output, the agent or engineer must create a context inventory and classify loaded sources:
+
+- `ENTRYPOINT` — root loading and authority instructions.
+- `NORMATIVE` — mandatory workflow and engineering rules.
+- `SOURCE` — canonical requirement contracts.
+- `DERIVED` — Flow/PRD/changelog records.
+- `EVIDENCE` — code, routes, schema, specs, generated docs, migrations, seeds, and config.
+- `EXPLANATORY` — guides, concepts, examples, and migration notes.
+
+Required pre-planning artifact:
+
+```text
+CONTEXT INVENTORY
+| Path/Source | Classification | Why loaded | Status |
+| --- | --- | --- | --- |
+
+CONTEXT SUMMARY
+- Task / feature:
+- Requirement source:
+- Requirement versions considered:
+- Normative sections loaded:
+- Derived docs loaded:
+- Implementation surfaces scanned:
+- Related specs found:
+- Dependencies discovered:
+- Context gaps:
+- Ready for Phase 0: YES/NO
+```
+
+If a material gap can change the plan, Phase -1 returns `Ready for Phase 0: NO` and stops before planning or code changes.
 
 ## Expected Installation Layout
 
@@ -139,19 +172,20 @@ The toolkit assumes a Rails API repository that uses or follows:
 
 ## Typical Execution
 
-1. Read `AGENTS.md` and load the normative contract required for the task.
-2. Receive or update a requirement under `doc/requirements/**`.
-3. Load context using the context-loading contract and skill.
-4. Extract the API contract and produce the traceability matrix.
-5. Scan existing repository surfaces.
-6. Produce a file-by-file implementation and test plan.
-7. Stop at the confirmation gate when planning-first mode is active.
-8. Implement minimal Rails-way changes.
-9. Perform the contract alignment check.
-10. Run `bin/verify`.
-11. Run `bin/contract_audit --all`.
-12. Update Flow, PRD, and changelog artifacts only after gates pass.
-13. Produce a final report with checks, discrepancies, and traceability.
+1. Read `AGENTS.md`.
+2. Complete Phase -1 and produce the context inventory/summary.
+3. Load the normative contract required for the task.
+4. Receive or identify the requirement under `doc/requirements/**`.
+5. Extract the API contract and produce the traceability matrix.
+6. Scan existing repository surfaces.
+7. Produce a file-by-file implementation and test plan.
+8. Stop at the confirmation gate when planning-first mode is active.
+9. Implement minimal Rails-way changes.
+10. Perform the contract alignment check.
+11. Run `bin/verify`.
+12. Run `bin/contract_audit --all`.
+13. Update Flow, PRD, and changelog artifacts only after gates pass.
+14. Produce a final report with checks, discrepancies, and traceability.
 
 ## Repository Contents
 
@@ -183,6 +217,7 @@ templates/
 - Agent-Ready Engineering Workflow
 - AI-Assisted SDLC
 - Context Engineering
+- Context Inventory
 - Source-of-Truth Context
 - Derived Context Docs
 - Contract-First Execution

@@ -23,9 +23,9 @@ requirements
 
 The architecture follows a **fat skills, thin harness** model:
 
-- `AGENTS.md` is the small repository entrypoint and authority/loading harness.
+- `AGENTS.md` is the small repository entrypoint and authority/loading/invocation harness.
 - `AGENTS_CONTRACT.md` preserves the complete normative Rails API contract.
-- `skills/**` contains reusable procedures for applying that contract.
+- `skills/**` contains reusable phase-specific procedures.
 - `verify` and `contract_audit` provide deterministic quality gates.
 - `docs/**` explains concepts, adoption, workflow, and migration decisions.
 - `templates/**` provides stable schemas for derived Flow and PRD context.
@@ -34,11 +34,11 @@ The architecture follows a **fat skills, thin harness** model:
 
 The repository intentionally has one normative contract system with two layers:
 
-1. `AGENTS.md` governs repository entry, mandatory load order, Phase -1 context loading, authority boundaries, and conflict handling.
+1. `AGENTS.md` governs repository entry, mandatory load order, Phase -1 context loading, skill invocation, authority boundaries, and conflict handling.
 2. `AGENTS_CONTRACT.md` governs the complete process from Phase 0 onward, edit scope, implementation rules, verification order, documentation timing, and final reporting.
 3. `doc/requirements/**` in a consumer repository governs feature/API behavior and owns numbered requirement versions.
 4. `doc/flow/**` and `doc/prd/**` are derived context updated only after verification.
-5. `skills/**` are execution aids. They cannot override either AGENTS contract layer or requirement contracts.
+5. `skills/**` are execution procedures. They cannot override either AGENTS contract layer or requirement contracts.
 6. `docs/**` are explanatory and adoption-oriented. They are not a second policy source.
 
 The split does not weaken or replace the original contract: `AGENTS_CONTRACT.md` is the unchanged former full `AGENTS.md`, while the root file provides a small, predictable entrypoint.
@@ -58,7 +58,7 @@ The split does not weaken or replace the original contract: `AGENTS_CONTRACT.md`
 
 ### Normative contract system
 
-- `AGENTS.md` — small Agent Operating Contract entrypoint: load order, Phase -1 context loading, authority, boundaries, and system map.
+- `AGENTS.md` — small Agent Operating Contract entrypoint: load order, Phase -1, skill invocation, authority, boundaries, and system map.
 - `AGENTS_CONTRACT.md` — complete normative Rails API workflow and engineering contract.
 
 ### Verification tooling
@@ -76,7 +76,7 @@ The split does not weaken or replace the original contract: `AGENTS_CONTRACT.md`
 
 ### Reusable skills
 
-- `skills/README.md` — skill registry and authority rules.
+- `skills/README.md` — skill registry, activation, status, and authority rules.
 - `skills/context_loading.md` — reusable procedure implementing Phase -1.
 - `skills/rails_api_feature.md` — feature implementation procedure.
 - `skills/flow_prd_update.md` — derived Flow/PRD update procedure.
@@ -92,11 +92,11 @@ For a normal feature task, progressively load only what is needed:
 
 1. `AGENTS.md`.
 2. `AGENTS_CONTRACT.md` relevant normative sections plus every referenced dependency.
-3. `skills/context_loading.md`.
-4. Target `doc/requirements/**` documents and relevant implementation surfaces.
-5. `skills/rails_api_feature.md` for planning and implementation.
-6. `docs/QUALITY_GATES.md` and the quality-gate skill when verification begins.
-7. `skills/flow_prd_update.md` only after verification and contract audit pass.
+3. Activate `skills/context_loading.md` for Phase -1.
+4. Load target `doc/requirements/**` documents and relevant implementation surfaces.
+5. Activate `skills/rails_api_feature.md` for planning and implementation when the task matches.
+6. Activate `skills/quality_gate_review.md` when verification begins, once available; otherwise execute the normative gates directly.
+7. Activate `skills/flow_prd_update.md` only after verification and contract audit pass.
 
 Do not load every explanatory document and skill by default. Progressive disclosure keeps the working context focused, but it must never omit a normative rule or requirement dependency that can affect correctness.
 
@@ -107,6 +107,7 @@ Before Phase 0 planning output, the agent or engineer must create a context inve
 - `ENTRYPOINT` — root loading and authority instructions.
 - `NORMATIVE` — mandatory workflow and engineering rules.
 - `SOURCE` — canonical requirement contracts.
+- `PROCEDURE` — activated skill files.
 - `DERIVED` — Flow/PRD/changelog records.
 - `EVIDENCE` — code, routes, schema, specs, generated docs, migrations, seeds, and config.
 - `EXPLANATORY` — guides, concepts, examples, and migration notes.
@@ -123,6 +124,7 @@ CONTEXT SUMMARY
 - Requirement source:
 - Requirement versions considered:
 - Normative sections loaded:
+- Procedures activated:
 - Derived docs loaded:
 - Implementation surfaces scanned:
 - Related specs found:
@@ -132,6 +134,37 @@ CONTEXT SUMMARY
 ```
 
 If a material gap can change the plan, Phase -1 returns `Ready for Phase 0: NO` and stops before planning or code changes.
+
+## Normative Skill Invocation
+
+A skill is activated only when the current phase/task matches its purpose, required inputs are available, its output is useful or required, and no higher authority forbids it.
+
+Invocation lifecycle:
+
+1. Resolve required inputs.
+2. Load the skill as `PROCEDURE` context.
+3. Confirm it aligns with both AGENTS contract layers and requirements.
+4. Execute only the phase-relevant procedure.
+5. Produce its required artifact.
+6. Evaluate completion checks and failure modes.
+7. Carry forward the artifact and decisions, not unnecessary copies of the skill body.
+
+Required record:
+
+```text
+SKILL INVOCATION
+- Skill:
+- Phase:
+- Trigger:
+- Inputs resolved:
+- Required output:
+- Status: ACTIVATED/COMPLETED/BLOCKED/NOT_REQUIRED/UNAVAILABLE
+- Notes:
+```
+
+A missing skill never waives a normative requirement. When a skill is unavailable, execute the contract directly and record `UNAVAILABLE`.
+
+Do not bulk-load all skills. Multiple skills may be active only when their responsibilities are distinct and their outputs compose without authority conflicts.
 
 ## Expected Installation Layout
 
@@ -175,17 +208,18 @@ The toolkit assumes a Rails API repository that uses or follows:
 1. Read `AGENTS.md`.
 2. Complete Phase -1 and produce the context inventory/summary.
 3. Load the normative contract required for the task.
-4. Receive or identify the requirement under `doc/requirements/**`.
-5. Extract the API contract and produce the traceability matrix.
-6. Scan existing repository surfaces.
-7. Produce a file-by-file implementation and test plan.
-8. Stop at the confirmation gate when planning-first mode is active.
-9. Implement minimal Rails-way changes.
-10. Perform the contract alignment check.
-11. Run `bin/verify`.
-12. Run `bin/contract_audit --all`.
-13. Update Flow, PRD, and changelog artifacts only after gates pass.
-14. Produce a final report with checks, discrepancies, and traceability.
+4. Activate the phase-relevant skills and create invocation records.
+5. Receive or identify the requirement under `doc/requirements/**`.
+6. Extract the API contract and produce the traceability matrix.
+7. Scan existing repository surfaces.
+8. Produce a file-by-file implementation and test plan.
+9. Stop at the confirmation gate when planning-first mode is active.
+10. Implement minimal Rails-way changes.
+11. Perform the contract alignment check.
+12. Run `bin/verify`.
+13. Run `bin/contract_audit --all`.
+14. Update Flow, PRD, and changelog artifacts only after gates pass.
+15. Produce a final report with checks, discrepancies, and traceability.
 
 ## Repository Contents
 
@@ -227,6 +261,7 @@ templates/
 - Requirement-to-Code Traceability
 - Structured Context Schemas
 - Skill Registry
+- Skill Invocation
 - Progressive Disclosure
 - Fat Skills, Thin Harness
 

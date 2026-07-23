@@ -1,54 +1,102 @@
 # agents
 
-Agent-ready contract-first workflow toolkit for Rails API teams.
+Agent-ready, contract-first workflow toolkit for Rails API teams.
 
-This repository is not an application. It is a small toolkit you copy into a Rails API codebase so human engineers or coding agents can work against one operating contract, one requirement source, and one verification path before merge.
+This repository is not an application or a prompt pack. It is a toolkit copied into a Rails API codebase so human engineers and coding agents work against the same requirement authority, execution contract, reusable procedures, and verification gates.
 
-## What This Tool Is
-
-This toolkit provides an **Agent Operating Contract** for reliable Rails API implementation work.
-
-It treats implementation as a repeatable workflow:
+## System at a Glance
 
 ```text
-requirements -> context extraction -> repo scan -> plan -> implementation -> verification -> contract audit -> derived docs -> final report
+requirements
+  -> context loading
+  -> contract extraction
+  -> repository scan
+  -> implementation plan
+  -> confirmation gate
+  -> implementation
+  -> contract alignment
+  -> verification
+  -> contract audit
+  -> derived docs
+  -> final evidence report
 ```
 
-Core files:
+The architecture follows a **fat skills, thin harness** model:
 
-- `AGENTS.md` defines the implementation workflow, response contract, verification order, documentation rules, and final output contract.
-- `verify` is the source script for `bin/verify`, which runs the required verification profile.
-- `contract_audit` is the source script for `bin/contract_audit`, which checks for contract drift and documentation/template violations.
-- `templates/FLOW_TEMPLATE.md` and `templates/PRD_TEMPLATE.md` provide the canonical structure for derived Flow and PRD docs.
-- `docs/CONCEPTS.md` explains the agentic workflow vocabulary used by this repository.
-- `docs/WORKFLOW.md` gives a compact execution map for teams adopting the toolkit.
+- `AGENTS.md` is the normative operating contract and authority model.
+- `skills/**` contains reusable procedures for applying that contract.
+- `verify` and `contract_audit` provide deterministic quality gates.
+- `docs/**` explains concepts, adoption, workflow, and migration decisions.
+- `templates/**` provides stable schemas for derived Flow and PRD context.
 
-## What This Tool Is For
+## Authority Model
 
-Use this toolkit in a Rails API repository when you want to enforce:
+The repository intentionally has one normative workflow authority:
 
-- contract-first implementation against `doc/requirements/**`
-- context loading before code changes
-- planning-first execution gates
-- canonical response envelopes and error shapes
-- Blueprinter-owned `data` payloads
-- Pundit/Ransack/Kaminari conventions
-- post-implementation verification via `bin/verify`
-- contract drift checks via `bin/contract_audit --all`
-- stable Flow/PRD document structure under `doc/templates/**`
-- requirement-to-code traceability in the final report
+1. `AGENTS.md` governs process, edit scope, implementation rules, verification order, documentation timing, and final reporting.
+2. `doc/requirements/**` in a consumer repository governs feature/API behavior and owns numbered requirement versions.
+3. `doc/flow/**` and `doc/prd/**` are derived context updated only after verification.
+4. `skills/**` are execution aids. They cannot override `AGENTS.md` or requirement contracts.
+5. `docs/**` are explanatory and adoption-oriented. They are not a second policy source.
 
-## Problems It Solves
+## What Problems It Solves
 
-- **Prompt drift:** work is governed by `AGENTS.md`, not one-off prompts.
-- **Context pollution:** agents load requirements, related docs, and implementation surfaces in a defined order.
-- **Contract drift:** request/response shape, docs, and implementation are checked before merge.
-- **Manual verification gaps:** `bin/verify` and `bin/contract_audit --all` define the required quality gates.
-- **Unreviewable AI output:** final reports must include checks, discrepancies, and a traceability matrix.
+- **Prompt drift:** execution is governed by repository contracts, not one-off prompts.
+- **Context pollution:** context is loaded deliberately and classified by authority.
+- **Premature implementation:** no-code planning and confirmation gates happen first.
+- **Contract drift:** request/response behavior is checked against requirements.
+- **Representational drift:** envelopes, routes, serialization, and docs follow stable rules.
+- **Verification gaps:** completion requires both verification and contract audit evidence.
+- **Workflow duplication:** recurring procedures are extracted into reusable skills.
+- **Unreviewable AI output:** final reports include commands, exit codes, discrepancies, and traceability.
+
+## Core Files
+
+### Normative contract
+
+- `AGENTS.md` — the Agent Operating Contract for Rails API implementation.
+
+### Verification tooling
+
+- `verify` — source script installed as `bin/verify` in a consumer repository.
+- `contract_audit` — source script installed as `bin/contract_audit`.
+
+### Explanatory documentation
+
+- `docs/CONCEPTS.md` — terminology and system model.
+- `docs/WORKFLOW.md` — compact execution and responsibility map.
+- `docs/QUALITY_GATES.md` — verification and contract-audit model.
+- `docs/WORKFLOW_MIGRATION.md` — staged migration from the original unified contract to the agent-ready architecture.
+- `changelog.md` — research path, decisions, implemented stages, and remaining work.
+
+### Reusable skills
+
+- `skills/README.md` — skill registry and authority rules.
+- `skills/context_loading.md` — deliberate context-loading procedure.
+- `skills/rails_api_feature.md` — feature implementation procedure.
+- `skills/flow_prd_update.md` — derived Flow/PRD update procedure.
+
+### Structured context templates
+
+- `templates/FLOW_TEMPLATE.md` — canonical Flow-doc structure.
+- `templates/PRD_TEMPLATE.md` — canonical PRD structure.
+
+## Recommended Skill Loading Order
+
+For a normal feature task, progressively load only what is needed:
+
+1. `AGENTS.md` relevant normative sections.
+2. `skills/context_loading.md`.
+3. Target `doc/requirements/**` documents and relevant implementation surfaces.
+4. `skills/rails_api_feature.md` for planning and implementation.
+5. `docs/QUALITY_GATES.md` and the quality-gate skill when verification begins.
+6. `skills/flow_prd_update.md` only after verification and contract audit pass.
+
+Do not load every document and skill by default. Progressive disclosure keeps the working context focused.
 
 ## Expected Installation Layout
 
-The scripts in this repo are source files. In a consumer Rails repository, place them at the paths expected by the contract:
+The scripts and contract files in this repository are source artifacts. In a consumer Rails API repository, install them like this:
 
 ```text
 <rails_app>/
@@ -56,19 +104,24 @@ The scripts in this repo are source files. In a consumer Rails repository, place
 ├── bin/
 │   ├── verify
 │   └── contract_audit
+├── skills/
+│   ├── README.md
+│   ├── context_loading.md
+│   ├── rails_api_feature.md
+│   └── flow_prd_update.md
 └── doc/
     └── templates/
         ├── FLOW_TEMPLATE.md
         └── PRD_TEMPLATE.md
 ```
 
-The `verify` and `contract_audit` scripts compute `APP_ROOT` from `bin/..`, so they are intended to live in `bin/`, not at the repository root.
+The scripts compute `APP_ROOT` from `bin/..`, so `verify` and `contract_audit` are intended to be copied into `bin/`.
 
-## Consumer Repo Assumptions
+## Consumer Repository Assumptions
 
-This toolkit assumes the target repository is a Rails API project that uses or follows:
+The toolkit assumes a Rails API repository that uses or follows:
 
-- Bundler and git
+- Bundler and Git
 - RuboCop and RSpec
 - RSwag for Swagger generation
 - Blueprinter for serialization
@@ -77,26 +130,39 @@ This toolkit assumes the target repository is a Rails API project that uses or f
 - Ransack for filtering/search
 - `doc/requirements/**`, `doc/flow/**`, and `doc/prd/**` as the documentation layout
 
-## Typical Workflow
+## Typical Execution
 
-1. Add the files from this repository into the Rails API repo using the installation layout above.
-2. Write or update requirement docs under `doc/requirements/**`.
-3. Execute the no-code planning phases from `AGENTS.md`.
-4. Implement the feature only after the planning gate is cleared.
-5. Run `bin/verify`.
-6. Run `bin/contract_audit --all`.
-7. Update derived docs and changelog only after verification passes.
-8. Produce the final report with checks, discrepancies, and traceability.
+1. Receive or update a requirement under `doc/requirements/**`.
+2. Load context using the context-loading contract and skill.
+3. Extract the API contract and produce the traceability matrix.
+4. Scan existing repository surfaces.
+5. Produce a file-by-file implementation and test plan.
+6. Stop at the confirmation gate when planning-first mode is active.
+7. Implement minimal Rails-way changes.
+8. Perform the contract alignment check.
+9. Run `bin/verify`.
+10. Run `bin/contract_audit --all`.
+11. Update Flow, PRD, and changelog artifacts only after gates pass.
+12. Produce a final report with checks, discrepancies, and traceability.
 
 ## Repository Contents
 
 ```text
 AGENTS.md
+README.md
+changelog.md
 verify
 contract_audit
 docs/
   CONCEPTS.md
+  QUALITY_GATES.md
   WORKFLOW.md
+  WORKFLOW_MIGRATION.md
+skills/
+  README.md
+  context_loading.md
+  rails_api_feature.md
+  flow_prd_update.md
 templates/
   FLOW_TEMPLATE.md
   PRD_TEMPLATE.md
@@ -104,17 +170,32 @@ templates/
 
 ## Preferred Terminology
 
-Use these terms when describing this toolkit:
-
 - Agent Operating Contract
-- Contract-First Execution
+- Agent-Ready Engineering Workflow
+- AI-Assisted SDLC
 - Context Engineering
+- Source-of-Truth Context
+- Derived Context Docs
+- Contract-First Execution
+- Planning-First Gate
 - Verification-Driven Development
 - Contract Drift Audit
 - Requirement-to-Code Traceability
-- Structured Context Docs
-- AI-Assisted SDLC
-- Agent-Ready Engineering Workflow
+- Structured Context Schemas
+- Skill Registry
+- Progressive Disclosure
+- Fat Skills, Thin Harness
+
+## What This Toolkit Is Not
+
+- a general-purpose autonomous-agent runtime
+- a multi-agent orchestration platform
+- a replacement for explicit requirements
+- a replacement for Rails conventions
+- a no-code automation system
+- a collection of model-specific prompts
+
+It is a repository-level execution, context, and verification system for reliable Rails API delivery.
 
 ## License
 

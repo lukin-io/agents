@@ -28,7 +28,7 @@ Do not make code changes before Phase -1 is complete and the normative contract 
 ## Authority and Precedence
 
 1. Explicit user instructions govern the requested outcome unless they conflict with a higher-level safety rule.
-2. This file defines the repository-level operating, context-loading, and skill-invocation contract.
+2. This file defines the repository-level operating, context-loading, skill-invocation, and agentic-audit contract.
 3. `AGENTS_CONTRACT.md` defines the complete normative process, engineering rules, verification gates, documentation rules, and final reporting contract.
 4. `doc/requirements/**` owns feature/API behavior and numbered requirement versions.
 5. `doc/flow/**` and `doc/prd/**` are derived context updated only after verification and compliance gates pass.
@@ -56,7 +56,7 @@ Classify each loaded source as exactly one primary type:
 - `SOURCE` — canonical `doc/requirements/**` feature/API contracts.
 - `PROCEDURE` — activated `skills/**` files used to execute a phase.
 - `DERIVED` — Flow/PRD/changelog docs that describe verified implementation but do not own behavior.
-- `EVIDENCE` — routes, code, schema, specs, generated API docs, migrations, seeds, and configuration.
+- `EVIDENCE` — routes, code, schema, specs, generated API docs, migrations, seeds, configuration, and command results.
 - `EXPLANATORY` — concepts, workflow guides, migration notes, examples, or other non-authoritative aids.
 
 ### Required loading sequence
@@ -145,18 +145,18 @@ Activate a skill when all are true:
 
 Do not activate a skill merely because it exists.
 
-Default phase mapping for current skills:
+Default phase mapping:
 
 - Phase -1: `skills/context_loading.md`.
 - Phase 0 through implementation for Rails API feature work: `skills/rails_api_feature.md`.
-- Verification/review: `skills/quality_gate_review.md` when present; otherwise follow the normative gates directly.
+- Verification/review: `skills/quality_gate_review.md`.
 - Flow/PRD updates after green gates: `skills/flow_prd_update.md`.
 
 ### Required invocation lifecycle
 
 For each activated skill:
 
-1. Resolve its required inputs.
+1. Resolve required inputs.
 2. Load the skill and classify it as `PROCEDURE` in the context inventory.
 3. Confirm it does not conflict with this file, `AGENTS_CONTRACT.md`, or requirements.
 4. Execute only the phase-relevant procedure.
@@ -206,19 +206,67 @@ When a relevant skill is missing or unavailable:
 - record the skill as `UNAVAILABLE`
 - do not skip or weaken the phase
 
+## Agentic Workflow Audit Gate [NORMATIVE]
+
+`agentic_audit` supplements `contract_audit` by checking the integrity of the agent workflow layer.
+
+### Trigger
+
+The audit is required when the diff touches any of:
+
+- `AGENTS.md`
+- `AGENTS_CONTRACT.md`
+- `skills/**`
+- toolkit `docs/**`
+- toolkit `templates/**`
+- consumer `doc/templates/**`
+- `README.md`
+- `changelog.md`
+- `agentic_audit` or `bin/agentic_audit`
+- the agentic audit CI workflow
+
+It is not required for an ordinary feature diff that touches none of those surfaces.
+
+### Command order
+
+When triggered, run after the required verification command and `bin/contract_audit --all`, before the final quality-gate decision and before derived docs are updated.
+
+Toolkit source repository:
+
+```bash
+ruby -c agentic_audit
+ruby agentic_audit --all --scope toolkit
+```
+
+Consumer repository:
+
+```bash
+bin/agentic_audit --all --scope consumer
+```
+
+### Evidence and decision
+
+Record the exact command(s), exit codes, and scope.
+
+A required agentic audit that fails, cannot be executed, cannot be inspected, or is stale relative to the current diff makes `QUALITY GATE DECISION: BLOCKED`.
+
+Do not use the audit to redefine API requirements or replace `contract_audit`.
+
 ## Architecture Map
 
 - `AGENTS_CONTRACT.md` — complete normative Rails API contract.
-- `skills/README.md` — skill registry and skill authority rules.
-- `skills/context_loading.md` — reusable procedure implementing Phase -1.
-- `skills/rails_api_feature.md` — contract-first feature implementation procedure.
-- `skills/quality_gate_review.md` — verification evidence procedure when present.
+- `skills/README.md` — skill registry and authority rules.
+- `skills/context_loading.md` — Phase -1 procedure.
+- `skills/rails_api_feature.md` — contract-first implementation procedure.
+- `skills/quality_gate_review.md` — verification evidence and readiness procedure.
 - `skills/flow_prd_update.md` — post-verification derived-doc procedure.
-- `docs/CONCEPTS.md` — system terminology and definitions.
+- `agentic_audit` — source audit for toolkit and consumer layouts.
+- `docs/AGENTIC_AUDIT.md` — audit checks and usage.
+- `docs/CONCEPTS.md` — terminology and definitions.
 - `docs/WORKFLOW.md` — compact execution map.
-- `docs/QUALITY_GATES.md` — verification and contract-audit explanation.
+- `docs/QUALITY_GATES.md` — quality-gate explanation.
 - `docs/WORKFLOW_MIGRATION.md` — staged migration plan.
-- `changelog.md` — research path, decisions, stage status, and behavior impact.
+- `changelog.md` — decisions, stage status, and behavior impact.
 
 ## Operating Principle
 
@@ -227,7 +275,7 @@ The repository follows a **fat skills, thin harness** model:
 - this file stays focused on loading, authority, boundaries, and cross-phase gates
 - `AGENTS_CONTRACT.md` preserves the complete normative Rails API contract
 - skills provide reusable phase-specific procedures
-- verification scripts provide deterministic completion gates
+- verification/audit scripts provide deterministic completion gates
 
 Use progressive disclosure to reduce context noise, never to skip correctness-relevant context.
 
@@ -240,7 +288,8 @@ Use progressive disclosure to reduce context noise, never to skip correctness-re
 - Activated skills require an invocation record and completion status.
 - Missing skills never waive normative workflow requirements.
 - `bin/verify` and `bin/contract_audit --all` remain mandatory in the order defined by `AGENTS_CONTRACT.md`.
-- Flow/PRD/changelog updates happen only at the stage allowed by the normative contract.
-- Final output must include the evidence required by `AGENTS_CONTRACT.md`.
+- `agentic_audit` is additionally mandatory when its trigger surfaces change.
+- Flow/PRD/changelog updates happen only after all required gates pass.
+- Final output must include the evidence required by both AGENTS contract layers.
 
 Continue with `AGENTS_CONTRACT.md` after Phase -1 passes.

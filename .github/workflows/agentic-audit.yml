@@ -45,3 +45,23 @@ jobs:
 
       - name: Run toolkit audit
         run: ruby agentic_audit --all --scope toolkit
+
+      - name: Build consumer installation layout
+        run: |
+          consumer_root="$(mktemp -d)"
+          mkdir -p "$consumer_root/bin" "$consumer_root/skills" "$consumer_root/doc/templates"
+
+          cp AGENTS.md AGENTS_CONTRACT.md "$consumer_root/"
+          cp verify "$consumer_root/bin/verify"
+          cp contract_audit "$consumer_root/bin/contract_audit"
+          cp agentic_audit "$consumer_root/bin/agentic_audit"
+          cp skills/*.md "$consumer_root/skills/"
+          cp templates/*.md "$consumer_root/doc/templates/"
+          chmod +x "$consumer_root/bin/verify" "$consumer_root/bin/contract_audit" "$consumer_root/bin/agentic_audit"
+
+          echo "CONSUMER_ROOT=$consumer_root" >> "$GITHUB_ENV"
+
+      - name: Run consumer-layout audit
+        run: |
+          cd "$CONSUMER_ROOT"
+          bin/agentic_audit --all --scope consumer

@@ -79,6 +79,7 @@ The split does not weaken or replace the original contract: `AGENTS_CONTRACT.md`
 - `skills/README.md` — skill registry, activation, status, and authority rules.
 - `skills/context_loading.md` — reusable procedure implementing Phase -1.
 - `skills/rails_api_feature.md` — feature implementation procedure.
+- `skills/quality_gate_review.md` — verification evidence and documentation-readiness decision procedure.
 - `skills/flow_prd_update.md` — derived Flow/PRD update procedure.
 
 ### Structured context templates
@@ -95,8 +96,8 @@ For a normal feature task, progressively load only what is needed:
 3. Activate `skills/context_loading.md` for Phase -1.
 4. Load target `doc/requirements/**` documents and relevant implementation surfaces.
 5. Activate `skills/rails_api_feature.md` for planning and implementation when the task matches.
-6. Activate `skills/quality_gate_review.md` when verification begins, once available; otherwise execute the normative gates directly.
-7. Activate `skills/flow_prd_update.md` only after verification and contract audit pass.
+6. Activate `skills/quality_gate_review.md` after implementation and contract alignment.
+7. Activate `skills/flow_prd_update.md` only after `QUALITY GATE DECISION: PASS`.
 
 Do not load every explanatory document and skill by default. Progressive disclosure keeps the working context focused, but it must never omit a normative rule or requirement dependency that can affect correctness.
 
@@ -166,6 +167,28 @@ A missing skill never waives a normative requirement. When a skill is unavailabl
 
 Do not bulk-load all skills. Multiple skills may be active only when their responsibilities are distinct and their outputs compose without authority conflicts.
 
+## Quality Gate Decision
+
+`skills/quality_gate_review.md` runs after implementation and contract alignment.
+
+It records:
+
+- selected `bin/verify` profile and reason
+- exact commands and exit codes
+- checks executed and automatic skips
+- contract-audit results
+- rule-compliance evidence
+- discrepancies
+- traceability status
+
+It ends with:
+
+```text
+QUALITY GATE DECISION: PASS/BLOCKED
+```
+
+Only `PASS` permits Flow/PRD/changelog updates. A command that was not executed or inspected cannot be reported as passed.
+
 ## Expected Installation Layout
 
 The scripts and contract files in this repository are source artifacts. In a consumer Rails API repository, install them like this:
@@ -181,6 +204,7 @@ The scripts and contract files in this repository are source artifacts. In a con
 │   ├── README.md
 │   ├── context_loading.md
 │   ├── rails_api_feature.md
+│   ├── quality_gate_review.md
 │   └── flow_prd_update.md
 └── doc/
     └── templates/
@@ -216,10 +240,11 @@ The toolkit assumes a Rails API repository that uses or follows:
 9. Stop at the confirmation gate when planning-first mode is active.
 10. Implement minimal Rails-way changes.
 11. Perform the contract alignment check.
-12. Run `bin/verify`.
-13. Run `bin/contract_audit --all`.
-14. Update Flow, PRD, and changelog artifacts only after gates pass.
-15. Produce a final report with checks, discrepancies, and traceability.
+12. Activate `skills/quality_gate_review.md`.
+13. Run `bin/verify` and `bin/contract_audit --all` through the quality-gate procedure.
+14. Continue only when `QUALITY GATE DECISION: PASS`.
+15. Update Flow, PRD, and changelog artifacts when required.
+16. Produce a final report with checks, discrepancies, and traceability.
 
 ## Repository Contents
 
@@ -239,6 +264,7 @@ skills/
   README.md
   context_loading.md
   rails_api_feature.md
+  quality_gate_review.md
   flow_prd_update.md
 templates/
   FLOW_TEMPLATE.md
@@ -257,6 +283,7 @@ templates/
 - Contract-First Execution
 - Planning-First Gate
 - Verification-Driven Development
+- Quality Gate Decision
 - Contract Drift Audit
 - Requirement-to-Code Traceability
 - Structured Context Schemas

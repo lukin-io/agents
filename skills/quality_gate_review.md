@@ -6,7 +6,7 @@ This skill is an execution aid. `AGENTS.md`, `AGENTS_CONTRACT.md`, and the targe
 
 ## Purpose
 
-Produce reviewable evidence that implementation, tests, generated API documentation, security checks when required, and contract-drift checks passed in the required order.
+Produce reviewable evidence that implementation, tests, generated API documentation, required security checks, API contract audit, and agentic workflow audit when triggered passed in the required order.
 
 The skill owns verification evidence and the binary documentation-readiness decision:
 
@@ -46,6 +46,7 @@ SKILL INVOCATION
 - changed implementation files
 - changed spec files
 - changed schema/seed/process-tooling files, if any
+- changed agentic workflow surfaces, if any
 - current Contract Traceability Matrix
 - known `[IMPL]` and `[DOC]` discrepancies
 - repository access sufficient to run or inspect required commands
@@ -54,7 +55,10 @@ SKILL INVOCATION
 
 Load and follow:
 
-- `AGENTS.md` Skill Invocation Contract and authority rules
+- `AGENTS.md`:
+  - Skill Invocation Contract
+  - Agentic Workflow Audit Gate
+  - authority rules
 - `AGENTS_CONTRACT.md` sections:
   - Contract Alignment Check
   - Verification Checklist
@@ -66,7 +70,7 @@ Load and follow:
   - Contract Traceability Matrix
 - target `doc/requirements/**` sources and all applicable versions
 
-Use `docs/QUALITY_GATES.md` as explanatory guidance only.
+Use `docs/QUALITY_GATES.md` and `docs/AGENTIC_AUDIT.md` as explanatory guidance only.
 
 ## Procedure
 
@@ -154,9 +158,43 @@ Record:
 
 An audit failure or unjustified allowlist blocks the skill.
 
-### Step 5 — Compliance and Traceability Review
+### Step 5 — Run or Inspect Agentic Workflow Audit When Triggered
 
-After commands pass, confirm:
+Determine whether the diff touches the trigger surfaces listed in `AGENTS.md`.
+
+If not triggered, record:
+
+```text
+- agentic audit: NOT_REQUIRED
+```
+
+If triggered, run after contract audit:
+
+```bash
+# Toolkit source repository
+ruby -c agentic_audit
+ruby agentic_audit --all --scope toolkit
+
+# Consumer repository
+bin/agentic_audit --all --scope consumer
+```
+
+Record:
+
+- trigger surfaces
+- exact command(s)
+- scope
+- exit codes
+- check summary
+- evidence commit/diff scope
+
+A failed, unavailable, uninspectable, or stale required agentic audit blocks the skill.
+
+The agentic audit supplements but does not replace `contract_audit`.
+
+### Step 6 — Compliance and Traceability Review
+
+After all required commands pass, confirm:
 
 - contract-first behavior remains aligned
 - Blueprinter owns `data` payloads
@@ -167,10 +205,11 @@ After commands pass, confirm:
 - relevant success, failure, edge, and boundary specs exist
 - generated Swagger is driven by specs
 - requirement docs were not improperly edited
-- derived docs were not updated before gates
+- agentic workflow structure passes when changed
+- derived docs were not updated before all gates
 - Contract Traceability Matrix has no unresolved implementation gap
 
-### Step 6 — Decide Documentation Readiness
+### Step 7 — Decide Documentation Readiness
 
 Set:
 
@@ -178,7 +217,7 @@ Set:
 QUALITY GATE DECISION: PASS
 ```
 
-only when all completion conditions pass.
+only when every triggered gate and completion condition passes.
 
 Otherwise set:
 
@@ -209,6 +248,11 @@ CHECKS
 - <exact contract audit command>: exit <code>
   - audit results:
   - evidence scope:
+- <exact agentic audit command or NOT_REQUIRED>: exit <code or n/a>
+  - trigger surfaces:
+  - scope:
+  - audit results:
+  - evidence scope:
 
 RULE COMPLIANCE AUDIT
 - R1 Contract-first: COMPLIANT/VIOLATED (evidence)
@@ -217,6 +261,7 @@ RULE COMPLIANCE AUDIT
 - R4 Representational invariants: COMPLIANT/VIOLATED (evidence)
 - R5 Safe defaults for required fields: COMPLIANT/VIOLATED (evidence)
 - R6 Verification checklist completed: COMPLIANT/VIOLATED (evidence)
+- R7 Agentic workflow integrity when triggered: COMPLIANT/VIOLATED/NOT_REQUIRED (evidence)
 
 Discrepancies Report
 - [IMPL] ...
@@ -240,6 +285,7 @@ The skill is `COMPLETED` with `QUALITY GATE DECISION: PASS` only when:
 - all `[IMPL]` discrepancies are resolved
 - required verification exits `0`
 - required contract audit exits `0`
+- triggered agentic audit exits `0`, or is correctly `NOT_REQUIRED`
 - no mandatory compliance rule is violated
 - traceability has no implementation gap
 - evidence matches the current diff and is recorded without fabrication
@@ -256,6 +302,7 @@ Set the invocation and decision to `BLOCKED` when:
 - verification cannot be run or inspected
 - a required command fails
 - audit uses an unjustified allowlist
+- triggered agentic audit cannot be run or inspected
 - mandatory tests or traceability evidence are missing
 - a compliance rule is violated
 - results are stale relative to the current diff

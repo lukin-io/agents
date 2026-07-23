@@ -1,0 +1,512 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Audits the agent-ready workflow structure, skills, docs, and internal links.
+#
+# Toolkit source usage:
+#   ruby agentic_audit --all
+#
+# Consumer repository usage after copying to bin/:
+#   bin/agentic_audit --all
+
+require "optparse"
+require "pathname"
+
+APP_ROOT = if File.basename(__dir__) == "bin"
+             File.expand_path("..", __dir__)
+           else
+             File.expand_path(__dir__)
+           end
+
+class AgenticAuditor
+  CHECKS = {
+    required_files: "Required agentic workflow files exist",
+    skill_schema: "Skills follow the canonical heading schema and authority contract",
+    unique_skill_titles: "Skill titles are unique",
+    registry_sync: "Skill registry matches available skill files",
+    ownership_map: "Skill ownership rows are complete and non-overlapping",
+    readme_index: "Toolkit README indexes required contracts, docs, skills, tools, and templates",
+    local_references: "Repository-local references resolve",
+    template_mapping: "Skill template source and consumer mapping are documented",
+    contract_links: "AGENTS entrypoint links all required workflow procedures"
+  }.freeze
+
+  CHECK_ORDER = CHECKS.keys.freeze
+
+  REQUIRED_SKILL_HEADINGS = [
+    "purpose",
+    "activation",
+    "required inputs",
+    "normative references",
+    "procedure",
+    "required output",
+    "completion check",
+    "failure modes",
+    "handoff"
+  ].freeze
+
+  SKILL_FILES = %w[
+    context_loading.md
+    rails_api_feature.md
+    quality_gate_review.md
+    flow_prd_update.md
+  ].freeze
+
+  TOOLKIT_REQUIRED_FILES = [
+    "AGENTS.md",
+    "AGENTS_CONTRACT.md",
+    "README.md",
+    "changelog.md",
+    "verify",
+    "contract_audit",
+    "agentic_audit",
+    "docs/CONCEPTS.md",
+    "docs/QUALITY_GATES.md",
+    "docs/WORKFLOW.md",
+    "docs/WORKFLOW_MIGRATION.md",
+    "docs/AGENTIC_AUDIT.md",
+    "skills/README.md",
+    *SKILL_FILES.map { |name| "skills/#{name}" },
+    "templates/SKILL_TEMPLATE.md",
+    "templates/FLOW_TEMPLATE.md",
+    "templates/PRD_TEMPLATE.md"
+  ].freeze
+
+  CONSUMER_REQUIRED_FILES = [
+    "AGENTS.md",
+    "AGENTS_CONTRACT.md",
+    "bin/verify",
+    "bin/contract_audit",
+    "bin/agentic_audit",
+    "skills/README.md",
+    *SKILL_FILES.map { |name| "skills/#{name}" },
+    "doc/templates/SKILL_TEMPLATE.md",
+    "doc/templates/FLOW_TEMPLATE.md",
+    "doc/templates/PRD_TEMPLATE.md"
+  ].freeze
+
+  def initialize(options = {})
+    @only = options[:only]
+    @verbose = options[:verbose] || false
+    @scope = resolve_scope(options[:scope])
+    @results = []
+  end
+
+  def run
+    puts banner("AGENTIC WORKFLOW AUDIT")
+    puts "Root: #{APP_ROOT}"
+    puts "Scope: #{@scope}"
+    puts "Checks: #{checks_to_run.join(', ')}\n\n"
+
+    checks_to_run.each_with_index do |key, index|
+      run_check(key, index + 1, checks_to_run.size)
+    end
+
+    print_summary
+    all_passed? ? 0 : 1
+  end
+
+  def self.list_checks
+    puts "Available agentic audit checks:"
+    CHECK_ORDER.each do |key|
+      puts "  #{key.to_s.ljust(22)} - #{CHECKS.fetch(key)}"
+    end
+  end
+
+  private
+
+  def resolve_scope(requested)
+    return requested.to_sym if %w[toolkit consumer].include?(requested.to_s)
+    return :toolkit if File.exist?(File.join(APP_ROOT, "templates/SKILL_TEMPLATE.md"))
+
+    :consumer
+  end
+
+  def toolkit?
+    @scope == :toolkit
+  end
+
+  def checks_to_run
+    return CHECK_ORDER unless @only
+
+    key = @only.to_sym
+    unless CHECKS.key?(key)
+      warn "Unknown check: #{@only}"
+      warn "Run 'agentic_audit --list' to see available checks."
+      exit 1
+    end
+
+    [key]
+  end
+
+  def run_check(key, number, total)
+    puts banner("#{number}/#{total}: #{key}")
+    puts CHECKS.fetch(key)
+
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    result = send("check_#{key}")
+    duration = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).round(3)
+
+    @results << {
+      key: key,
+      status: result.fetch(:status),
+      details: result.fetch(:details),
+      duration: duration
+    }
+
+    puts "Result: #{result[:status].to_s.upcase} (#{duration}s)"
+    print_details(result[:details]) if @verbose || result[:status] == :failed
+    puts
+  rescue StandardError => e
+    @results << {
+      key: key,
+      status: :failed,
+      details: ["#{e.class}: #{e.message}"],
+      duration: 0.0
+    }
+    puts "Result: FAILED (exception)"
+    print_details(["#{e.class}: #{e.message}"])
+    puts
+  end
+
+  def check_required_files
+    missing = required_files.reject { |path| File.exist?(absolute(path)) }
+    return passed if missing.empty?
+
+    failed(["Missing required file(s):", *missing.map { |path| "  - #{path}" }])
+  end
+
+  def check_skill_schema
+    errors = []
+
+    skill_files.each do |file|
+      relative = relative_path(file)
+      content = File.read(file)
+      headings = markdown_headings(content)
+
+      errors << "#{relative}: first heading must start with '# Skill:'" unless headings.first&.start_with?("skill:")
+
+      unless content.include?("`AGENTS.md`") && content.include?("`AGENTS_CONTRACT.md`")
+        errors << "#{relative}: missing AGENTS authority statement/reference"
+      end
+
+      errors << "#{relative}: missing SKILL INVOCATION artifact" unless content.include?("SKILL INVOCATION")
+      errors.concat(heading_order_errors(relative, headings.drop(1)))
+    end
+
+    return passed if errors.empty?
+
+    failed(["Skill schema violations:", *errors.map { |error| "  - #{error}" }])
+  end
+
+  def check_unique_skill_titles
+    titles = Hash.new { |hash, key| hash[key] = [] }
+
+    skill_files.each do |file|
+      title = markdown_headings(File.read(file)).first
+      titles[title] << relative_path(file)
+    end
+
+    duplicates = titles.select { |_title, files| files.size > 1 }
+    return passed if duplicates.empty?
+
+    details = ["Duplicate skill titles:"]
+    duplicates.each do |title, files|
+      details << "  - #{title}: #{files.join(', ')}"
+    end
+    failed(details)
+  end
+
+  def check_registry_sync
+    actual = skill_files.map { |file| File.basename(file) }.sort
+    registered = registry_rows.map { |row| row.fetch(:file) }.uniq.sort
+
+    missing = actual - registered
+    stale = registered - actual
+
+    details = []
+    details << "Registry missing skill(s): #{missing.join(', ')}" if missing.any?
+    details << "Registry references missing skill(s): #{stale.join(', ')}" if stale.any?
+
+    details.empty? ? passed : failed(details)
+  end
+
+  def check_ownership_map
+    errors = []
+    rows = registry_rows
+
+    rows.each do |row|
+      errors << "#{row[:file]}: empty primary ownership" if row[:ownership].empty?
+      errors << "#{row[:file]}: empty required output" if row[:output].empty?
+      errors << "#{row[:file]}: empty handoff" if row[:handoff].empty?
+    end
+
+    duplicate_ownership = rows.group_by { |row| row[:ownership].downcase }
+                              .select { |_ownership, grouped| grouped.size > 1 }
+
+    duplicate_ownership.each do |ownership, grouped|
+      errors << "duplicate primary ownership '#{ownership}': #{grouped.map { |row| row[:file] }.join(', ')}"
+    end
+
+    return passed if errors.empty?
+
+    failed(["Skill ownership map violations:", *errors.map { |error| "  - #{error}" }])
+  end
+
+  def check_readme_index
+    return skipped("Toolkit-only check") unless toolkit?
+
+    readme = File.read(absolute("README.md"))
+    missing = required_files.reject { |path| path == "README.md" }
+                            .reject { |path| readme.include?("`#{path}`") || readme.include?(path) }
+    return passed if missing.empty?
+
+    failed(["README does not index:", *missing.map { |path| "  - #{path}" }])
+  end
+
+  def check_local_references
+    broken = []
+
+    markdown_files.each do |file|
+      extract_local_references(File.read(file)).each do |reference|
+        next if ignored_reference_for_scope?(reference)
+        next if File.exist?(absolute(reference))
+
+        broken << "#{relative_path(file)} -> #{reference}"
+      end
+    end
+
+    broken.uniq!
+    return passed if broken.empty?
+
+    failed(["Broken repository-local reference(s):", *broken.map { |item| "  - #{item}" }])
+  end
+
+  def check_template_mapping
+    return skipped("Toolkit-only check") unless toolkit?
+
+    readme = File.read(absolute("README.md"))
+    registry = File.read(absolute("skills/README.md"))
+    required = ["templates/SKILL_TEMPLATE.md", "doc/templates/SKILL_TEMPLATE.md"]
+
+    missing = required.reject do |path|
+      readme.include?(path) && registry.include?(path)
+    end
+
+    return passed if missing.empty?
+
+    failed(["Missing skill-template mapping reference(s):", *missing.map { |path| "  - #{path}" }])
+  end
+
+  def check_contract_links
+    agents = File.read(absolute("AGENTS.md"))
+    required = [
+      "AGENTS_CONTRACT.md",
+      "skills/README.md",
+      *SKILL_FILES.map { |name| "skills/#{name}" }
+    ]
+
+    missing = required.reject { |path| agents.include?(path) }
+    return passed if missing.empty?
+
+    failed(["AGENTS.md missing required link(s):", *missing.map { |path| "  - #{path}" }])
+  end
+
+  def required_files
+    toolkit? ? TOOLKIT_REQUIRED_FILES : CONSUMER_REQUIRED_FILES
+  end
+
+  def registry_rows
+    @registry_rows ||= File.readlines(absolute("skills/README.md"), chomp: true).filter_map do |line|
+      match = line.match(/^\|\s*`([^`]+\.md)`\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|$/)
+      next unless match
+
+      {
+        file: match[1].strip,
+        ownership: match[2].strip,
+        output: match[3].strip,
+        handoff: match[4].strip
+      }
+    end
+  end
+
+  def heading_order_errors(relative, headings)
+    cursor = -1
+    errors = []
+
+    REQUIRED_SKILL_HEADINGS.each do |required|
+      index = nil
+      headings.each_with_index do |heading, heading_index|
+        next unless heading_index > cursor && heading == required
+
+        index = heading_index
+        break
+      end
+
+      if index
+        cursor = index
+      else
+        errors << "#{relative}: missing or out-of-order heading '## #{titleize(required)}'"
+      end
+    end
+
+    errors
+  end
+
+  def markdown_headings(content)
+    content.lines.filter_map do |line|
+      match = line.match(/^\s{0,3}\#{1,6}\s+(.+?)\s*$/)
+      match && normalize_heading(match[1])
+    end
+  end
+
+  def normalize_heading(heading)
+    heading.downcase.gsub(/[`*_]/, "").strip
+  end
+
+  def titleize(value)
+    value.split.map(&:capitalize).join(" ")
+  end
+
+  def skill_files
+    @skill_files ||= Dir.glob(absolute("skills/*.md")).reject do |file|
+      File.basename(file) == "README.md"
+    end.sort
+  end
+
+  def markdown_files
+    @markdown_files ||= begin
+      paths = %w[AGENTS.md AGENTS_CONTRACT.md]
+      paths.concat(%w[README.md changelog.md].select { |path| File.file?(absolute(path)) })
+      paths.concat(Dir.glob(absolute("docs/**/*.md")).map { |path| relative_path(path) })
+      paths.concat(Dir.glob(absolute("skills/**/*.md")).map { |path| relative_path(path) })
+      paths.concat(Dir.glob(absolute("templates/**/*.md")).map { |path| relative_path(path) })
+      paths.concat(Dir.glob(absolute("doc/templates/**/*.md")).map { |path| relative_path(path) })
+
+      paths.uniq.filter_map do |path|
+        full = absolute(path)
+        full if File.file?(full)
+      end
+    end
+  end
+
+  def extract_local_references(content)
+    references = []
+    references.concat(content.scan(/`([^`\n]+)`/).flatten)
+    references.concat(content.scan(/\]\(([^)]+)\)/).flatten)
+
+    references.filter_map { |raw| normalize_local_reference(raw) }.uniq
+  end
+
+  def normalize_local_reference(raw)
+    value = raw.strip.split("#", 2).first
+    return if value.empty?
+    return if value.match?(%r{\Ahttps?://})
+    return if value.match?(/[\s*{}<>]/)
+    return if value.include?("...")
+
+    value = value.sub(%r{\A\./}, "")
+    return value if local_reference_files.include?(value)
+    return value if local_reference_prefixes.any? { |prefix| value.start_with?(prefix) }
+  end
+
+  def local_reference_prefixes
+    toolkit? ? %w[docs/ skills/ templates/] : %w[skills/ doc/templates/ bin/]
+  end
+
+  def local_reference_files
+    files = %w[AGENTS.md AGENTS_CONTRACT.md]
+    if toolkit?
+      files.concat(%w[README.md changelog.md verify contract_audit agentic_audit])
+    end
+    files
+  end
+
+  def ignored_reference_for_scope?(reference)
+    return false if toolkit?
+
+    # The registry documents where toolkit source templates originate, while
+    # consumer repositories install them under doc/templates/**.
+    reference.start_with?("templates/")
+  end
+
+  def absolute(path)
+    File.expand_path(path, APP_ROOT)
+  end
+
+  def relative_path(path)
+    Pathname.new(path).relative_path_from(Pathname.new(APP_ROOT)).to_s
+  end
+
+  def passed(details = [])
+    { status: :passed, details: Array(details) }
+  end
+
+  def skipped(message)
+    { status: :skipped, details: [message] }
+  end
+
+  def failed(details)
+    { status: :failed, details: Array(details) }
+  end
+
+  def print_details(details)
+    details.each { |line| puts "  #{line}" }
+  end
+
+  def all_passed?
+    @results.none? { |result| result[:status] == :failed }
+  end
+
+  def print_summary
+    puts banner("AGENTIC AUDIT SUMMARY")
+    @results.each do |result|
+      label = case result[:status]
+              when :passed then "PASS"
+              when :skipped then "SKIP"
+              else "FAIL"
+              end
+      puts "#{label.ljust(5)} #{result[:key].to_s.ljust(22)} | #{result[:duration]}s"
+    end
+
+    puts
+    if all_passed?
+      puts "Agentic workflow audit passed"
+    else
+      count = @results.count { |result| result[:status] == :failed }
+      puts "Agentic workflow audit failed (#{count} failing check#{count == 1 ? '' : 's'})"
+    end
+  end
+
+  def banner(text)
+    line = "=" * 68
+    "\n#{line}\n#{text.center(68)}\n#{line}"
+  end
+end
+
+def parse_options(argv)
+  options = {}
+
+  OptionParser.new do |parser|
+    parser.banner = "Usage: agentic_audit [OPTIONS]"
+
+    parser.on("--all", "Run all checks (default)") { options[:only] = nil }
+    parser.on("--only NAME", "Run one check") { |name| options[:only] = name }
+    parser.on("--scope SCOPE", %w[toolkit consumer], "Audit scope (auto-detected by default)") do |scope|
+      options[:scope] = scope
+    end
+    parser.on("--verbose", "Print details for passing/skipped checks") { options[:verbose] = true }
+    parser.on("--list", "List checks") do
+      AgenticAuditor.list_checks
+      exit 0
+    end
+    parser.on("--help", "Show help") do
+      puts parser
+      exit 0
+    end
+  end.parse!(argv)
+
+  options
+end
+
+exit AgenticAuditor.new(parse_options(ARGV)).run

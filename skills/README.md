@@ -6,9 +6,15 @@ This directory contains reusable execution procedures for the Agent Operating Co
 
 ## Canonical Skill Schema
 
-All skills follow:
+The toolkit source template is:
 
 - `templates/SKILL_TEMPLATE.md`
+
+In a consumer repository, install it as:
+
+- `doc/templates/SKILL_TEMPLATE.md`
+
+All skills follow its required structure.
 
 Required section order:
 

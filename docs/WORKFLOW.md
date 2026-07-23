@@ -1,199 +1,240 @@
 # Agentic Rails API Workflow
 
-This document gives a compact map of the workflow defined by `AGENTS.md`.
+This document is the compact adoption map for the workflow governed by `AGENTS.md` and `AGENTS_CONTRACT.md`.
 
-`AGENTS.md` remains the authoritative contract. This file is an adoption guide for teams that want to understand the execution loop quickly.
+It is explanatory, not an independent policy source.
 
 ## Workflow Summary
 
 ```text
-1. Requirement handoff
-2. Context extraction
-3. Repo scan
+1. Phase -1 context loading
+2. Requirement contract extraction
+3. Repository scan
 4. Implementation plan
 5. Confirmation gate
 6. Implementation
-7. Contract alignment check
-8. Verification
-9. Contract audit
-10. Derived docs and changelog
-11. Final report
+7. Implementation handoff
+8. Contract alignment
+9. Verification
+10. API contract audit
+11. Agentic workflow audit when triggered
+12. Quality gate decision
+13. Derived docs when PASS
+14. Final evidence report
 ```
 
-## 1. Requirement Handoff
+Primary skill sequence:
 
-Feature behavior starts in `doc/requirements/**`.
+```text
+context_loading
+  -> rails_api_feature
+  -> quality_gate_review
+  -> flow_prd_update when required
+  -> final reporting
+```
 
-The requirement document is read-only during implementation work.
+## 1. Phase -1 Context Loading
 
-It owns:
+Activate `skills/context_loading.md`.
 
-- API behavior
-- request parameters
-- response shape
-- validation rules
-- auth rules
-- version labels
-- compatibility deltas
+Load and classify:
 
-If a new requirement version was authored upstream before implementation begins, it may be treated as handoff input. Implementation still must not rewrite the requirement while coding.
+- root entrypoint
+- normative contract sections and dependencies
+- requirement sources and versions
+- activated procedures
+- derived docs
+- implementation/spec evidence
+- explanatory aids when needed
 
-## 2. Context Extraction
+Produce:
 
-Before code changes, extract the backend contract from requirements.
+```text
+CONTEXT INVENTORY
+CONTEXT SUMMARY
+Ready for Phase 0: YES/NO
+```
 
-Required output:
+Material gaps return `NO` and stop before planning or code changes.
 
-- endpoints
-- params
-- response fields
-- validations
-- error codes
-- version deltas
-- Contract Traceability Matrix
+## 2. Requirement Contract Extraction
 
-This phase turns prose requirements into implementation-ready context.
+Requirements under `doc/requirements/**` own feature/API behavior and numbered versions.
 
-## 3. Repo Scan
+Extract:
 
-Scan existing implementation surfaces before planning changes.
+- endpoints, methods, paths, auth, and statuses
+- params, types, defaults, enums, and requiredness
+- response fields and nesting
+- validations and errors
+- cumulative version deltas
+- compatibility/removal rules
 
-Look for:
+Build the Contract Traceability Matrix.
+
+## 3. Repository Scan
+
+Inspect relevant:
 
 - routes
 - controllers
 - models
 - blueprints
 - policies
-- services/queries
-- request specs
-- rswag specs
-- migrations
-- seeds
-- existing Flow/PRD docs
+- services, queries, and jobs
+- request/model/blueprint/policy/rswag specs
+- migrations, schema, seeds, generated docs, and config
+- existing Flow/PRD/changelog references
 
-The goal is to reuse existing Rails surfaces and avoid duplicate implementation paths.
+Evidence describes current behavior but does not redefine requirements.
 
 ## 4. Implementation Plan
 
-Produce a file-by-file plan before editing code.
-
-Include:
+Produce:
 
 - required components
-- changed files
-- new files
-- deleted files, if any
-- test plan
-- auth considerations
-- preload/N+1 considerations
-- safe defaults
-- requirement mapping
-- risks and discrepancies
-
-Discrepancies must use the required taxonomy:
-
-```text
-[IMPL] expected per docs vs actual code
-[DOC] docs conflict with model/DB reality
-```
+- file-by-file `NEW`, `MODIFY`, `DELETE` actions
+- short old/new previews
+- test and authorization mapping
+- edge/null/boundary coverage
+- risks and `[IMPL]`/`[DOC]` discrepancies
 
 ## 5. Confirmation Gate
 
-If the task invokes planning-first mode, implementation pauses after the plan.
-
-The expected stop output is:
+When planning-first mode applies, stop with:
 
 ```text
 CONFIRM_TO_IMPLEMENT? (yes/no)
 ```
 
-No code changes happen before this gate is cleared.
+No implementation starts before explicit confirmation.
 
 ## 6. Implementation
 
-After confirmation, implement with minimal diffs and Rails-way/KISS.
+Activate `skills/rails_api_feature.md` for matching Rails API work.
 
-Default implementation rules:
+Implement minimal Rails-way/KISS changes while preserving:
 
-- use Rails primitives first
-- add service/query objects only when justified
-- keep Blueprinter as the owner of `data` payloads
-- keep controllers responsible for envelopes only
-- use Pundit for authorization
-- use Ransack for filtering/search
-- use Kaminari for pagination
-- avoid DB-specific SQL unless explicitly allowed by the project
+- requirement-owned contracts
+- Blueprinter-owned `data`
+- controller envelope ownership
+- Pundit/Ransack/Kaminari conventions
+- database constraints and DB-agnostic queries
+- required test coverage
+- documentation timing rules
 
-## 7. Contract Alignment Check
+## 7. Implementation Handoff
 
-Before running verification commands, re-check implementation against requirements.
+Produce:
 
-Confirm:
+```text
+FEATURE IMPLEMENTATION HANDOFF
+```
 
-- endpoint exists
-- method/path match
-- params match
-- response fields exist in blueprints
-- required fields are not null
-- auth rules match
-- validations match
-- no TODO/placeholder gaps remain
+It carries:
 
-Fix all `[IMPL]` discrepancies before moving forward.
+- files/specs changed
+- requirement versions
+- traceability state
+- schema/seed/process impact
+- known discrepancies
+- expected verification profile
+- readiness for quality review
 
-## 8. Verification
+Implementation completion does not imply verification success.
 
-Run the required verification profile:
+## 8. Contract Alignment
+
+Before commands, re-check requirements against implementation and specs.
+
+Fix every `[IMPL]` discrepancy. Report `[DOC]` discrepancies without rewriting requirements.
+
+## 9. Verification
+
+Activate `skills/quality_gate_review.md`.
+
+Run the required profile:
 
 ```bash
 bin/verify
 ```
 
-Use the full profile only when required by `AGENTS.md` or explicitly requested:
+Use `bin/verify --full` only when contract conditions require it.
 
-```bash
-bin/verify --full
-```
+Record exact command, exit code, checks, skips, and evidence scope.
 
-The fast profile is intended for normal pre-merge use. The full profile is for schema/seed/process-sensitive changes or explicit full verification.
+## 10. API Contract Audit
 
-## 9. Contract Audit
-
-Run the contract audit after verification:
+After verification passes:
 
 ```bash
 bin/contract_audit --all
 ```
 
-This checks for drift across critical surfaces, including requirements, Swagger, controller rendering, route style, database-specific SQL tokens, and docs templates.
+This protects API/representation/documentation invariants.
 
-## 10. Derived Docs and Changelog
+## 11. Agentic Workflow Audit
 
-Only after verification and contract audit pass:
+When agentic surfaces changed, run after contract audit:
 
-- update `doc/flow/**`
-- update `doc/prd/**`
-- add `changelogs/unreleased/{TASK_ID}.md`
+```bash
+# Toolkit source
+ruby -c agentic_audit
+ruby agentic_audit --all --scope toolkit
 
-Flow and PRD docs are derived context. They must not invent independent API versions.
+# Consumer repository
+bin/agentic_audit --all --scope consumer
+```
 
-## 11. Final Report
+It validates skill schema, registry, ownership, references, README index, template mapping, and AGENTS links.
 
-Final output must include:
+For ordinary feature changes with no trigger surface, record `NOT_REQUIRED`.
+
+## 12. Quality Gate Decision
+
+The quality skill produces:
+
+```text
+CHECKS
+RULE COMPLIANCE AUDIT
+Discrepancies Report
+TRACEABILITY STATUS
+QUALITY GATE DECISION: PASS/BLOCKED
+```
+
+Only `PASS` permits derived-document work.
+
+## 13. Derived Docs
+
+When required, activate `skills/flow_prd_update.md` only after `PASS`.
+
+Update:
+
+- feature-owned `doc/flow/**`
+- feature-owned `doc/prd/**`
+- task-owned `changelogs/unreleased/{TASK_ID}.md`
+
+Use requirement-owned versions, verified examples, migration impact, traceability, and Drift Delta.
+
+Produce:
+
+```text
+DOC UPDATE HANDOFF
+```
+
+## 14. Final Evidence Report
+
+Final output follows `AGENTS_CONTRACT.md` and includes:
 
 - `WHAT & HOW`
 - `RATIONALE`
 - `CHECKS`
 - `RULE COMPLIANCE AUDIT`
 - `Discrepancies Report`
-- `Contract Traceability Matrix`
-
-This makes the result reviewable by humans and reusable as future context for agents.
+- Contract Traceability Matrix
+- skill handoff/evidence relevant to the task
 
 ## Human / Agent Responsibility Split
-
-The workflow is designed for both human engineers and coding agents.
 
 Humans own:
 
@@ -203,27 +244,29 @@ Humans own:
 - confirmation gates
 - merge decisions
 
-Agents can execute:
+Agents may execute:
 
-- contract extraction
-- repo scanning
-- implementation planning
-- code changes
-- verification runs
-- contract audit reports
-- Flow/PRD/changelog updates
+- context loading and classification
+- contract extraction and scanning
+- planning and implementation
+- test/verification commands
+- contract and agentic audits
+- evidence reporting
+- post-`PASS` derived-doc updates
 
-The system works best when requirements are explicit and verification is mandatory.
+Agents cannot fabricate tool evidence or override authority.
 
 ## Why This Workflow Exists
 
-The workflow reduces the common failure modes of AI-assisted development:
+It reduces:
 
-- coding before understanding the contract
-- missing hidden auth or response-shape rules
-- producing inconsistent JSON envelopes
-- drifting from generated API docs
-- updating docs before tests pass
-- losing traceability between requirements, implementation, and specs
+- coding before context/requirements are understood
+- hidden auth/response-shape gaps
+- context noise and duplicated procedures
+- contract and generated-doc drift
+- skill/registry/link drift
+- premature documentation updates
+- stale or fabricated verification claims
+- lost requirement-to-code traceability
 
-The result should be mergeable-by-default work: small diffs, explicit contract mapping, green checks, and reviewable evidence.
+The result should be mergeable-by-default work: focused context, explicit handoffs, green gates, and reviewable evidence.

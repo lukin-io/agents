@@ -19,7 +19,7 @@ PR #3 is intentionally an umbrella pull request. Each logical stage is committed
 A stage is complete only after:
 
 1. Stage implementation is committed and pushed.
-2. This changelog records status, files, what changed, why, behavior impact, decisions/limitations, and next stage.
+2. This changelog records status, files, changes, rationale, behavior impact, decisions/limitations, and next stage.
 3. The changelog update is committed and pushed separately.
 4. A concise stage summary is provided to the project owner.
 
@@ -27,7 +27,7 @@ A stage is complete only after:
 
 # 1. Starting Point
 
-The original repository contained:
+The repository began as a compact Rails API enforcement toolkit:
 
 ```text
 AGENTS.md
@@ -38,21 +38,9 @@ templates/
   PRD_TEMPLATE.md
 ```
 
-It already provided:
+It already enforced contract-first implementation, requirement-owned behavior, no-code planning, confirmation gates, canonical envelopes, Blueprinter ownership, Pundit/Ransack/Kaminari conventions, repeatable verification, drift detection, structured derived docs, traceability, and final evidence.
 
-- contract-first implementation against `doc/requirements/**`
-- requirement-owned API behavior and version authority
-- no-code planning and confirmation gates
-- canonical success and error envelopes
-- Blueprinter-owned `data` payloads
-- Pundit, Ransack, and Kaminari conventions
-- repeatable pre-merge verification
-- contract-drift detection
-- stable Flow/PRD schemas
-- requirement-to-code traceability
-- final evidence reporting
-
-The gap was not missing discipline. The gap was that the public structure did not explicitly map those mechanics to agent engineering, context engineering, reusable skills, verification-driven development, or AI-assisted delivery.
+The migration goal is not to replace that discipline. It is to expose, modularize, and strengthen it using agent engineering, context engineering, reusable skills, and verification-driven workflow concepts.
 
 ---
 
@@ -69,12 +57,11 @@ Resources:
 
 Conclusions:
 
-- AI-assisted work is moving from single responses toward repeatable execution systems.
-- One-off prompts do not compound reliably across teams and repositories.
-- Reusable workflows and skills are more valuable than repeatedly authored large prompts.
+- AI-assisted work is moving toward repeatable execution systems.
+- One-off prompts do not compound reliably.
+- Reusable workflows and skills are more valuable than large repeated prompts.
 - **Fat skills, thin harness** is a useful architecture.
-- Generation becomes cheaper; verification becomes more important.
-- Durable value comes from context, workflow, knowledge, verification, and traceability.
+- Verification becomes more important as generation becomes cheaper.
 
 ## 2.2 Agent Platforms
 
@@ -87,11 +74,10 @@ Resources:
 
 Conclusions:
 
-- An agent is an execution loop, not only a generated response.
+- An agent is an execution loop, not only a response.
 - Tools, state, handoffs, approvals, traces, and evaluations are system components.
 - Production workflows require observability and evaluation.
 - Multi-agent systems should only be introduced for useful responsibility boundaries.
-- A reliable single workflow is often better than premature orchestration complexity.
 
 ## 2.3 Context and Reliability
 
@@ -103,12 +89,10 @@ Resources:
 Conclusions:
 
 - Context quality matters more than context volume.
-- A context window is capacity, not guaranteed understanding.
 - Context should be loaded deliberately and progressively.
-- A tool is a capability; a skill is a procedure for using capabilities correctly.
-- Large universal prompts accumulate contradictions and noise.
-- Skills should define inputs, steps, outputs, checks, and failure modes.
-- Verification and traceability are essential to reliable execution.
+- A tool is a capability; a skill is a repeatable procedure.
+- Skills need inputs, steps, outputs, checks, and failure modes.
+- Verification and traceability are essential.
 
 ## 2.4 Internal Evidence
 
@@ -117,26 +101,24 @@ Resources:
 - https://lukin.io/blog/mergeable-by-default-context-engine-ai-codegen/
 - https://lukin.io/blog/1-backend-engineer-vs-11-engineers-with-ai/
 
-Principles already demonstrated internally:
+Existing principles:
 
 - generated work should be mergeable by default
 - ambiguity should be reduced before implementation
 - repository conventions should be explicit
 - verification should be deterministic
-- context should be treated as engineering infrastructure
+- context should be engineering infrastructure
 - requirements, code, specs, and docs should remain traceable
-- delivery speed should increase without weakening quality gates
-
-The migration therefore exposes, modularizes, and strengthens the existing system instead of replacing it with unnecessary orchestration.
 
 ---
 
-# 3. Current Target Architecture
+# 3. Current Architecture
 
 ```text
 AGENTS.md
   -> small mandatory entrypoint
   -> Phase -1 context loading
+  -> skill invocation contract
   -> authority, boundaries, cross-phase gates
 
 AGENTS_CONTRACT.md
@@ -145,165 +127,106 @@ AGENTS_CONTRACT.md
 
 skills/**
   -> reusable phase-specific procedures
-  -> progressively loaded when relevant
+  -> progressively activated when relevant
 
 verify
-  -> source for bin/verify
   -> deterministic verification profiles
 
 contract_audit
-  -> source for bin/contract_audit
   -> static drift and compliance checks
 
 docs/**
-  -> explanatory, adoption, quality, and migration documentation
+  -> explanatory and migration documentation
   -> never a second normative authority
 
 templates/**
-  -> stable schemas for derived Flow and PRD context
-
-changelog.md
-  -> research path, decisions, stages, behavior impact, remaining work
+  -> stable schemas for derived context
 ```
 
 Execution loop:
 
 ```text
 Phase -1 context loading
-  -> requirement handoff/identification
+  -> skill activation
   -> Phase 0 contract extraction
   -> repository scan
-  -> implementation plan
-  -> confirmation gate
+  -> plan
+  -> confirmation
   -> implementation
   -> contract alignment
   -> verification
   -> contract audit
-  -> derived documentation
-  -> final evidence report
+  -> derived docs
+  -> final evidence
 ```
 
 ---
 
-# 4. Completed Stages
+# 4. Stage Status
 
-## Stage 1 — Agent-Ready Positioning
-
-**Status:** Done
-
-**Primary file:** `README.md`
-
-Implemented agent-ready positioning, Agent Operating Contract terminology, execution-chain overview, and explicit problem framing.
-
-**Behavior impact:** documentation only.
-
----
-
-## Stage 2 — Concepts and Shared Vocabulary
-
-**Status:** Done
-
-**File:** `docs/CONCEPTS.md`
-
-Defined Agent Operating Contract, Source-of-Truth Context, Derived Context Docs, Context Engineering, Contract-First Execution, Planning-First Gate, Verification-Driven Development, Contract Drift Audit, traceability, discrepancy taxonomy, and structured context schemas.
-
-**Behavior impact:** explanatory foundation.
-
----
-
-## Stage 3 — Workflow Adoption Guide
-
-**Status:** Done
-
-**File:** `docs/WORKFLOW.md`
-
-Documented the compact execution map and human/tool responsibility boundaries.
-
-**Behavior impact:** explanatory only.
+| Stage | Status | Main outcome |
+| --- | --- | --- |
+| 1. Positioning | Done | Agent-ready repository framing |
+| 2. Concepts | Done | Stable vocabulary |
+| 3. Workflow guide | Done | Compact adoption map |
+| 4. Quality gates docs | Done | Unified verification model |
+| 5. Skill registry | Done | Reusable procedure layer |
+| 6. Context skill | Done | Explicit context-loading procedure |
+| 7. Rails feature skill | Done | Reusable implementation lifecycle |
+| 8. Flow/PRD skill | Done | Post-verification docs procedure |
+| 9. Migration plan | Done | Controlled behavior migration |
+| 10. Historical changelog | Done | Research and decision record |
+| 11. README consolidation | Done | Complete public entrypoint |
+| 12. AGENTS orientation | Done | Thin entrypoint + preserved contract core |
+| 13. Normative context loading | Done | Mandatory Phase -1 and readiness gate |
+| 14. Skill invocation contract | Done | Activation, precedence, lifecycle, status, fallback |
+| 15. Quality gate review skill | Next | Reusable verification evidence procedure |
+| 16. Skill consistency audit | Planned | Normalized skill schema and reduced duplication |
+| 17. Automated audit | Planned | Machine-enforced skills/docs integrity |
+| 18. Final integration | Planned | Full consistency and PR completion |
 
 ---
 
-## Stage 4 — Quality Gates Documentation
+# 5. Completed Stage Details
 
-**Status:** Done
+## Stages 1–4 — Positioning, Concepts, Workflow, Quality Gates
 
-**File:** `docs/QUALITY_GATES.md`
+**Files:**
 
-Unified contract alignment, `bin/verify`, `bin/contract_audit --all`, derived docs timing, and final evidence into one gate model.
+- `README.md`
+- `docs/CONCEPTS.md`
+- `docs/WORKFLOW.md`
+- `docs/QUALITY_GATES.md`
 
-**Behavior impact:** existing command behavior unchanged.
+Implemented agent-ready positioning, stable terminology, compact execution guidance, human/tool boundaries, and a unified verification model.
 
----
-
-## Stage 5 — Initial Skill Registry
-
-**Status:** Done
-
-**File:** `skills/README.md`
-
-Defined reusable skills by activation, inputs, steps, outputs, checks, failure modes, and authority boundaries.
-
-**Behavior impact:** introduced modular procedures without changing normative invocation.
+**Behavior impact:** explanatory; existing contract behavior remained intact.
 
 ---
 
-## Stage 6 — Context Loading Skill
+## Stages 5–8 — Initial Skills
 
-**Status:** Done
+**Files:**
 
-**File:** `skills/context_loading.md`
+- `skills/README.md`
+- `skills/context_loading.md`
+- `skills/rails_api_feature.md`
+- `skills/flow_prd_update.md`
 
-Created a reusable context-loading procedure and initial `CONTEXT SUMMARY` artifact.
+Extracted reusable procedures for context loading, Rails API implementation, and post-verification derived docs.
 
-**Behavior impact:** procedure layer; later made normative in Stage 13.
-
----
-
-## Stage 7 — Rails API Feature Skill
-
-**Status:** Done
-
-**File:** `skills/rails_api_feature.md`
-
-Extracted contract extraction, repo scan, planning, confirmation, implementation, verification, docs, and final evidence into a reusable skill.
-
-**Behavior impact:** procedure layer.
+**Behavior impact:** modular procedure layer; authority remained in the contract.
 
 ---
 
-## Stage 8 — Flow/PRD Update Skill
+## Stages 9–10 — Migration Governance and Changelog
 
-**Status:** Done
+**Files:**
 
-**File:** `skills/flow_prd_update.md`
+- `docs/WORKFLOW_MIGRATION.md`
+- `changelog.md`
 
-Created a post-verification procedure for mirrored paths, requirement-owned versions, traceability, migration impact, and Drift Delta.
-
-**Behavior impact:** procedure layer.
-
----
-
-## Stage 9 — Controlled Migration Plan
-
-**Status:** Done
-
-**File:** `docs/WORKFLOW_MIGRATION.md`
-
-Documented the safe staged migration and invariants that should not change casually.
-
-**Behavior impact:** migration governance.
-
----
-
-## Stage 10 — Historical and Decision Changelog
-
-**Status:** Done
-
-**File:** `changelog.md`
-
-Recorded resources, reasoning, architecture, stages, decisions, and remaining work.
-
-**Behavior impact:** documentation governance.
+Established a controlled migration sequence and durable record of research, decisions, behavior impact, and next work.
 
 ---
 
@@ -315,9 +238,9 @@ Recorded resources, reasoning, architecture, stages, decisions, and remaining wo
 
 **Changelog commit:** `ef30039730ccad77757a4320c20c10d63e138b49`
 
-README became the complete entrypoint with architecture, authority, docs/skills index, progressive loading, installation, terminology, and non-goals.
+README became the complete entrypoint with architecture, authority, all docs/skills, loading order, installation, terminology, and non-goals.
 
-**Behavior impact:** adoption behavior clarified; normative rules unchanged.
+**Behavior impact:** adoption clarified; normative rules unchanged.
 
 ---
 
@@ -335,12 +258,11 @@ README became the complete entrypoint with architecture, authority, docs/skills 
 
 - Preserved the former full `AGENTS.md` byte-for-byte as `AGENTS_CONTRACT.md`.
 - Replaced root `AGENTS.md` with a small mandatory entrypoint/harness.
-- Added load order, authority boundaries, architecture map, conflict handling, progressive disclosure guidance, and mandatory transition into the full contract.
-- Updated README to describe the two-layer normative system.
+- Added load order, authority boundaries, architecture map, conflict handling, and progressive-disclosure guidance.
 
 ### Why
 
-The original 1,100+ line file mixed the unavoidable entrypoint with the complete detailed contract and illustrative examples. Splitting it reduces default context pressure while preserving every rule.
+The original 1,100+ line file mixed the unavoidable entrypoint with the complete detailed contract. The split reduces default context pressure while preserving every original rule.
 
 ### Behavior impact
 
@@ -352,146 +274,191 @@ First structural runtime-context change. No original contract rule was removed.
 
 **Status:** Done
 
-**Normative Phase -1 commit:** `7f56f16d26799815e6d03174cd157a4c832a847a`
+**Phase -1 commit:** `7f56f16d26799815e6d03174cd157a4c832a847a`
 
 **Context skill commit:** `6f3089e6abb953f6923fd6e6fda943090af72a23`
 
 **README commit:** `716d2c3ef851d2226ef49b07d10c36fed2907825`
+
+**Changelog commit:** `140b1e6383aa1afea42b9e1f6b4e4f92f2d8dc5c`
+
+### Implemented
+
+Added mandatory Phase -1 before Phase 0 with classifications:
+
+- `ENTRYPOINT`
+- `NORMATIVE`
+- `SOURCE`
+- `PROCEDURE`
+- `DERIVED`
+- `EVIDENCE`
+- `EXPLANATORY`
+
+Required artifacts:
+
+```text
+CONTEXT INVENTORY
+CONTEXT SUMMARY
+Ready for Phase 0: YES/NO
+```
+
+Material context gaps now block planning.
+
+### Why
+
+Context loading had been recommended but not enforceable. This made context engineering a normative workflow phase.
+
+### Behavior impact
+
+- no planning before Phase -1 passes
+- no code changes during Phase -1
+- missing correctness-relevant context blocks progress
+- progressive disclosure is mandatory but cannot omit dependencies
+
+---
+
+## Stage 14 — Skill Invocation Contract
+
+**Status:** Done
+
+**Normative contract commit:** `a40a469827e109e1d8a85c7638333ce4a30ea295`
+
+**Skill registry commit:** `89dfdd5a01f6788d2bf1fb1d9ea92725638e582b`
+
+**Context skill commit:** `dd813c17dddd27a53c3197449752205db9392d0d`
+
+**README commit:** `823f4e3c3e83b30b11949d469bb9880ca19a8ddb`
 
 **Changelog synchronization:** this commit
 
 **Files:**
 
 - `AGENTS.md`
+- `skills/README.md`
 - `skills/context_loading.md`
 - `README.md`
 - `changelog.md`
 
 ### Implemented
 
-Added normative **Phase -1: Context Loading** before Phase 0.
+Added `PROCEDURE` as a first-class context classification for activated skills.
 
-The root contract now requires each loaded source to be classified as:
+Defined skill activation conditions:
 
-- `ENTRYPOINT`
-- `NORMATIVE`
-- `SOURCE`
-- `DERIVED`
-- `EVIDENCE`
-- `EXPLANATORY`
+1. task/phase matches purpose
+2. required inputs are available or safely resolvable
+3. output is required or materially improves repeatability/traceability/verification
+4. no higher authority forbids use
 
-Added a mandatory loading sequence:
+Defined default phase mapping:
 
-1. Load the entrypoint.
-2. Identify task, feature, and requirement path.
-3. Load relevant complete-contract sections and referenced normative dependencies.
-4. Load the target requirement and all requirement-owned versions.
-5. Locate mirrored derived docs.
-6. Scan implementation and spec evidence.
-7. Expand context only for discovered dependencies, conflicts, references, or ambiguity.
-8. Record unresolved gaps before planning.
+- Phase -1 → `skills/context_loading.md`
+- Phase 0 through implementation → `skills/rails_api_feature.md` for matching Rails API work
+- verification → `skills/quality_gate_review.md` once available, otherwise normative fallback
+- post-verification docs → `skills/flow_prd_update.md`
 
-Added progressive-disclosure rules:
+Defined invocation lifecycle:
 
-- do not bulk-load every skill/doc/file
-- load authoritative or directly relevant context
-- requirements are mandatory
-- derived/explanatory docs cannot override authority
-- evidence describes current implementation but cannot redefine requirements
-- update the inventory when later investigation adds context
+1. resolve inputs
+2. load as `PROCEDURE`
+3. verify authority alignment
+4. execute phase-relevant procedure
+5. produce artifact
+6. evaluate completion/failure
+7. retain output/decisions rather than unnecessary full skill text
 
-Added mandatory artifacts:
+Required artifact:
 
 ```text
-CONTEXT INVENTORY
-| Path/Source | Classification | Why loaded | Status |
-| --- | --- | --- | --- |
-
-CONTEXT SUMMARY
-- Task / feature:
-- Requirement source:
-- Requirement versions considered:
-- Normative sections loaded:
-- Derived docs loaded:
-- Implementation surfaces scanned:
-- Related specs found:
-- Dependencies discovered:
-- Context gaps:
-- Ready for Phase 0: YES/NO
+SKILL INVOCATION
+- Skill:
+- Phase:
+- Trigger:
+- Inputs resolved:
+- Required output:
+- Status: ACTIVATED/COMPLETED/BLOCKED/NOT_REQUIRED/UNAVAILABLE
+- Notes:
 ```
 
-Added a Phase -1 completion gate. If a material context gap can change the plan, output `Ready for Phase 0: NO` and stop before planning.
+Defined status semantics:
 
-Updated `skills/context_loading.md` to implement exactly the same classifications, sequence, outputs, completion checks, and failure modes.
+- `ACTIVATED`
+- `COMPLETED`
+- `BLOCKED`
+- `NOT_REQUIRED`
+- `UNAVAILABLE`
 
-Updated README to expose the normative Phase -1 behavior to adopters.
+Defined precedence and conflict rules:
+
+- AGENTS contract layers own process
+- requirements own feature behavior
+- skills implement procedures only
+- conflict marks skill `BLOCKED`
+- skill files are not silently edited during a feature task to hide conflict
+
+Defined loading boundaries:
+
+- no bulk skill loading
+- multiple active skills require distinct responsibilities
+- prefer one owner skill over overlapping procedures
+- reference normative sections rather than duplicating them
+
+Defined fallback:
+
+- if a skill is unavailable, execute the normative workflow directly
+- record `UNAVAILABLE`
+- never waive or weaken a requirement
+
+Updated the registry to show phase, purpose, and availability for each skill.
+
+Updated the context-loading skill to produce its own invocation record and include `PROCEDURE` classification.
+
+Updated README to document activation, lifecycle, invocation status, fallback, and phase usage.
 
 ### Why
 
-Before this stage, context loading was documented and available as a skill but not mandatory. Agents could still jump directly into contract extraction with implicit or incomplete context.
+Before this stage, skills existed but their runtime relationship to the contract was informal. An agent could bulk-load skills, treat them as competing authorities, or skip a phase when a skill was missing.
 
-This stage turns context engineering into an enforceable workflow phase. It addresses context pollution and missing-context risk simultaneously:
-
-- unrelated context is not loaded automatically
-- correctness-relevant context cannot be skipped
-- authority differences are explicit
-- planning readiness becomes reviewable
+This stage makes skill use deterministic and reviewable while preserving a direct contract fallback.
 
 ### Behavior impact
 
-This is a normative workflow behavior migration:
+Normative workflow change:
 
-- Phase -1 is mandatory before Phase 0
-- no code changes are allowed during Phase -1
-- a context inventory and summary are required
-- missing material context blocks planning
-- progressive disclosure is mandatory but cannot be used to omit dependencies
+- activated skills require invocation records
+- skills are loaded phase-by-phase
+- skill conflicts block the procedure
+- missing skills are explicitly reported but never weaken the contract
+- skill outputs, not full unrelated skill bodies, carry forward between phases
 
 ### Decisions
 
-- Context classification uses one primary type per source to keep inventories compact.
-- Requirement versions remain mandatory even under progressive disclosure.
-- `AGENTS_CONTRACT.md` Phase 0 remains intact; Phase -1 precedes it rather than rewriting it.
-- Skill invocation itself remains the next stage; Stage 13 defines the behavior independent of a specific skill file.
+- Skills remain optional implementations of mandatory behavior unless explicitly mapped as the normal procedure.
+- The context-loading skill is the normal Phase -1 procedure, but Phase -1 itself is contract-owned.
+- The future quality-gate skill is already mapped with a safe normative fallback.
+- Multi-skill use is allowed only for distinct, composable responsibilities.
 
 ### Next stage
 
-Stage 14: define the normative skill invocation contract—activation, inputs, outputs, precedence, progressive loading, and conflict behavior.
+Stage 15: implement `skills/quality_gate_review.md` so verification and contract-audit evidence follow the same skill model.
 
 ---
 
-# 5. Remaining Stages
-
-## Stage 14 — Skill Invocation Contract
-
-**Status:** Next
-
-Planned:
-
-- skill activation rules
-- required inputs and outputs
-- skill precedence
-- no bulk-loading all skills
-- normative references instead of duplicated policy
-- skill conflict and fallback protocol
+# 6. Remaining Stages
 
 ## Stage 15 — Quality Gate Review Skill
 
-**Status:** Planned
+**Status:** Next
 
-Planned file:
-
-```text
-skills/quality_gate_review.md
-```
-
-Responsibilities:
+Planned responsibilities:
 
 - contract-alignment evidence
-- exact verification commands and exit codes
+- exact verification command selection
+- command and exit-code reporting
 - failure summary
-- discrepancy report
-- readiness decision for derived docs
+- discrepancy classification
+- readiness decision for Flow/PRD/changelog updates
+- skill invocation and completion record
 
 ## Stage 16 — Skill Consistency Audit
 
@@ -499,18 +466,18 @@ Responsibilities:
 
 - normalize skill structure
 - reduce normative duplication
-- verify terminology, inputs, outputs, and failure modes
+- verify terminology, inputs, outputs, completion, and failure modes
 - introduce `templates/SKILL_TEMPLATE.md` if justified
 
 ## Stage 17 — Automated Skills and Docs Audit
 
 **Status:** Planned
 
-Potential `contract_audit` additions:
+Potential checks:
 
 - required skill headings
 - authority declarations
-- internal path/link checks
+- internal path/link integrity
 - README index completeness
 - missing referenced files
 - duplicate skill ownership
@@ -522,8 +489,7 @@ Potential `contract_audit` additions:
 - README/docs/skills/AGENTS consistency
 - no duplicate authorities
 - no contradictory workflow stages
-- explicit context loading
-- progressive skill loading
+- explicit context and skill loading
 - mandatory verification
 - scripts/docs alignment
 - synchronized changelog
@@ -531,7 +497,7 @@ Potential `contract_audit` additions:
 
 ---
 
-# 6. Current Repository State After Stage 13
+# 7. Current Repository State After Stage 14
 
 ```text
 AGENTS.md
@@ -555,4 +521,4 @@ templates/
   PRD_TEMPLATE.md
 ```
 
-The repository now has a small mandatory entrypoint, a preserved complete contract, normative context loading, explicit source classification, reusable skills, documented quality gates, and a stage-governed migration path.
+The repository now has a thin entrypoint, preserved full contract, normative context loading, deterministic skill activation, explicit invocation evidence, reusable procedures, documented quality gates, and a stage-governed migration path.

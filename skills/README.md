@@ -32,7 +32,7 @@ The goal is a **fat skills, thin harness** workflow:
 | --- | --- | --- | --- |
 | `context_loading.md` | Phase -1 | Load, classify, and validate context before planning. | Available |
 | `rails_api_feature.md` | Phase 0 through implementation | Implement a Rails API feature against requirement contracts. | Available |
-| `quality_gate_review.md` | Verification/review | Collect and report verification and contract-audit evidence. | Planned until Stage 15 |
+| `quality_gate_review.md` | Verification/review | Collect evidence, run/review required gates, and decide documentation readiness. | Available |
 | `flow_prd_update.md` | Post-verification docs | Update derived Flow/PRD docs after gates pass. | Available |
 
 ## Authority Relationship
@@ -137,7 +137,7 @@ For a typical Rails API feature:
 
 1. Activate `context_loading.md` for Phase -1.
 2. Activate `rails_api_feature.md` for contract extraction through implementation.
-3. Activate `quality_gate_review.md` for verification once available; until then execute normative quality gates directly and record `UNAVAILABLE`.
-4. Activate `flow_prd_update.md` only after verification and contract audit pass.
+3. Activate `quality_gate_review.md` after implementation and contract alignment.
+4. Activate `flow_prd_update.md` only after `QUALITY GATE DECISION: PASS`.
 
 This keeps the workflow modular without turning the repository into a heavy agent framework.

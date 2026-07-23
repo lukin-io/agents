@@ -23,7 +23,8 @@ requirements
 
 The architecture follows a **fat skills, thin harness** model:
 
-- `AGENTS.md` is the normative operating contract and authority model.
+- `AGENTS.md` is the small repository entrypoint and authority/loading harness.
+- `AGENTS_CONTRACT.md` preserves the complete normative Rails API contract.
 - `skills/**` contains reusable procedures for applying that contract.
 - `verify` and `contract_audit` provide deterministic quality gates.
 - `docs/**` explains concepts, adoption, workflow, and migration decisions.
@@ -31,13 +32,16 @@ The architecture follows a **fat skills, thin harness** model:
 
 ## Authority Model
 
-The repository intentionally has one normative workflow authority:
+The repository intentionally has one normative contract system with two layers:
 
-1. `AGENTS.md` governs process, edit scope, implementation rules, verification order, documentation timing, and final reporting.
-2. `doc/requirements/**` in a consumer repository governs feature/API behavior and owns numbered requirement versions.
-3. `doc/flow/**` and `doc/prd/**` are derived context updated only after verification.
-4. `skills/**` are execution aids. They cannot override `AGENTS.md` or requirement contracts.
-5. `docs/**` are explanatory and adoption-oriented. They are not a second policy source.
+1. `AGENTS.md` governs repository entry, mandatory load order, authority boundaries, and conflict handling.
+2. `AGENTS_CONTRACT.md` governs the complete process, edit scope, implementation rules, verification order, documentation timing, and final reporting.
+3. `doc/requirements/**` in a consumer repository governs feature/API behavior and owns numbered requirement versions.
+4. `doc/flow/**` and `doc/prd/**` are derived context updated only after verification.
+5. `skills/**` are execution aids. They cannot override either AGENTS contract layer or requirement contracts.
+6. `docs/**` are explanatory and adoption-oriented. They are not a second policy source.
+
+The split does not weaken or replace the original contract: `AGENTS_CONTRACT.md` is the unchanged former full `AGENTS.md`, while the root file provides a small, predictable entrypoint.
 
 ## What Problems It Solves
 
@@ -52,9 +56,10 @@ The repository intentionally has one normative workflow authority:
 
 ## Core Files
 
-### Normative contract
+### Normative contract system
 
-- `AGENTS.md` — the Agent Operating Contract for Rails API implementation.
+- `AGENTS.md` — small Agent Operating Contract entrypoint: load order, authority, boundaries, and system map.
+- `AGENTS_CONTRACT.md` — complete normative Rails API workflow and engineering contract.
 
 ### Verification tooling
 
@@ -85,14 +90,15 @@ The repository intentionally has one normative workflow authority:
 
 For a normal feature task, progressively load only what is needed:
 
-1. `AGENTS.md` relevant normative sections.
-2. `skills/context_loading.md`.
-3. Target `doc/requirements/**` documents and relevant implementation surfaces.
-4. `skills/rails_api_feature.md` for planning and implementation.
-5. `docs/QUALITY_GATES.md` and the quality-gate skill when verification begins.
-6. `skills/flow_prd_update.md` only after verification and contract audit pass.
+1. `AGENTS.md`.
+2. `AGENTS_CONTRACT.md` relevant normative sections plus every referenced dependency.
+3. `skills/context_loading.md`.
+4. Target `doc/requirements/**` documents and relevant implementation surfaces.
+5. `skills/rails_api_feature.md` for planning and implementation.
+6. `docs/QUALITY_GATES.md` and the quality-gate skill when verification begins.
+7. `skills/flow_prd_update.md` only after verification and contract audit pass.
 
-Do not load every document and skill by default. Progressive disclosure keeps the working context focused.
+Do not load every explanatory document and skill by default. Progressive disclosure keeps the working context focused, but it must never omit a normative rule or requirement dependency that can affect correctness.
 
 ## Expected Installation Layout
 
@@ -101,6 +107,7 @@ The scripts and contract files in this repository are source artifacts. In a con
 ```text
 <rails_app>/
 ├── AGENTS.md
+├── AGENTS_CONTRACT.md
 ├── bin/
 │   ├── verify
 │   └── contract_audit
@@ -132,23 +139,25 @@ The toolkit assumes a Rails API repository that uses or follows:
 
 ## Typical Execution
 
-1. Receive or update a requirement under `doc/requirements/**`.
-2. Load context using the context-loading contract and skill.
-3. Extract the API contract and produce the traceability matrix.
-4. Scan existing repository surfaces.
-5. Produce a file-by-file implementation and test plan.
-6. Stop at the confirmation gate when planning-first mode is active.
-7. Implement minimal Rails-way changes.
-8. Perform the contract alignment check.
-9. Run `bin/verify`.
-10. Run `bin/contract_audit --all`.
-11. Update Flow, PRD, and changelog artifacts only after gates pass.
-12. Produce a final report with checks, discrepancies, and traceability.
+1. Read `AGENTS.md` and load the normative contract required for the task.
+2. Receive or update a requirement under `doc/requirements/**`.
+3. Load context using the context-loading contract and skill.
+4. Extract the API contract and produce the traceability matrix.
+5. Scan existing repository surfaces.
+6. Produce a file-by-file implementation and test plan.
+7. Stop at the confirmation gate when planning-first mode is active.
+8. Implement minimal Rails-way changes.
+9. Perform the contract alignment check.
+10. Run `bin/verify`.
+11. Run `bin/contract_audit --all`.
+12. Update Flow, PRD, and changelog artifacts only after gates pass.
+13. Produce a final report with checks, discrepancies, and traceability.
 
 ## Repository Contents
 
 ```text
 AGENTS.md
+AGENTS_CONTRACT.md
 README.md
 changelog.md
 verify

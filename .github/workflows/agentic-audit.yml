@@ -1,0 +1,47 @@
+name: Agentic workflow audit
+
+on:
+  pull_request:
+    paths:
+      - AGENTS.md
+      - AGENTS_CONTRACT.md
+      - README.md
+      - changelog.md
+      - agentic_audit
+      - .github/workflows/agentic-audit.yml
+      - docs/**
+      - skills/**
+      - templates/**
+  push:
+    paths:
+      - AGENTS.md
+      - AGENTS_CONTRACT.md
+      - README.md
+      - changelog.md
+      - agentic_audit
+      - .github/workflows/agentic-audit.yml
+      - docs/**
+      - skills/**
+      - templates/**
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+
+      - name: Check Ruby syntax
+        run: ruby -c agentic_audit
+
+      - name: Run toolkit audit
+        run: ruby agentic_audit --all --scope toolkit

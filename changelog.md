@@ -1,6 +1,6 @@
 # Agentic Workflow Alignment Changelog
 
-This document records how `lukin-io/agents` is evolving from a strict Rails API contract toolkit into an explicitly agent-ready engineering workflow. It explains the research path, architectural reasoning, completed stages in PR #3, behavior impact, decisions, and remaining migration work.
+This document records how `lukin-io/agents` evolved from a strict Rails API contract toolkit into an explicitly agent-ready engineering workflow. It captures the research path, architecture, completed stages in PR #3, commit history, behavior impact, decisions, and remaining work.
 
 ## Change Scope
 
@@ -10,28 +10,51 @@ This document records how `lukin-io/agents` is evolving from a strict Rails API 
 - Base branch: `main`
 - Work period: May 10, 2026 onward
 - Current update date: July 23, 2026
-- Change type: positioning, documentation alignment, skill extraction, context engineering, verification-driven workflow migration, and enforcement preparation
+- Change type: positioning, documentation alignment, contract preservation, context engineering, skill extraction, verification-driven workflow migration, and automated-enforcement preparation
 
-PR #3 is intentionally an umbrella pull request. Each logical stage is committed separately so it can be reviewed, adjusted, or reverted independently.
+PR #3 is intentionally an umbrella PR. Each logical stage is committed separately so it can be reviewed, adjusted, or reverted independently.
 
 ## Stage Completion Rule
 
 A stage is complete only after:
 
-1. Stage implementation is committed and pushed.
-2. This changelog records status, files, changes, rationale, behavior impact, decisions/limitations, and next stage.
-3. The changelog update is committed and pushed separately.
-4. A concise stage summary is provided to the project owner.
+1. implementation is committed and pushed
+2. this changelog records status, files, rationale, behavior impact, decisions, limitations, and next stage
+3. the changelog update is committed and pushed separately
+4. a concise stage summary is provided to the project owner
 
 ---
 
 # 1. Starting Point
 
-The repository began as a compact Rails API enforcement toolkit with `AGENTS.md`, `verify`, `contract_audit`, and Flow/PRD templates.
+The repository originally contained:
 
-It already enforced contract-first implementation, requirement-owned behavior, no-code planning, confirmation gates, canonical envelopes, Blueprinter ownership, Pundit/Ransack/Kaminari conventions, repeatable verification, drift detection, structured derived docs, traceability, and final evidence.
+```text
+AGENTS.md
+verify
+contract_audit
+templates/
+  FLOW_TEMPLATE.md
+  PRD_TEMPLATE.md
+```
 
-The migration goal is to expose, modularize, and strengthen that system using agent engineering, context engineering, reusable skills, and verification-driven workflow concepts.
+It already enforced:
+
+- contract-first implementation against `doc/requirements/**`
+- requirement-owned API behavior and versions
+- no-code planning and confirmation gates
+- canonical success/error envelopes
+- Blueprinter-owned `data` payloads
+- Pundit, Ransack, and Kaminari conventions
+- repeatable pre-merge verification
+- contract-drift checks
+- structured Flow/PRD docs
+- requirement-to-code traceability
+- final evidence reporting
+
+The gap was not missing discipline. The gap was that the system was not explicitly structured or described using agent engineering, context engineering, reusable skills, and verification-driven workflow concepts.
+
+The migration therefore preserves the original contract while exposing and modularizing its procedures.
 
 ---
 
@@ -48,9 +71,9 @@ Resources:
 
 Conclusions:
 
-- AI-assisted work is moving toward repeatable execution systems.
-- One-off prompts do not compound reliably.
-- Reusable workflows and skills are more valuable than repeated large prompts.
+- AI-assisted work is moving from isolated prompts toward reusable execution systems.
+- One-off prompts do not compound reliably across teams or repositories.
+- Reusable skills and workflows are more valuable than repeated large prompts.
 - **Fat skills, thin harness** is a useful architecture.
 - Verification becomes more important as generation becomes cheaper.
 
@@ -68,7 +91,7 @@ Conclusions:
 - An agent is an execution loop, not only a response.
 - Tools, state, handoffs, approvals, traces, and evaluations are system components.
 - Production workflows require observability and evaluation.
-- Multi-agent systems should only be introduced for useful responsibility boundaries.
+- Multi-agent systems should only be introduced for meaningful responsibility boundaries.
 
 ## 2.3 Context and Reliability
 
@@ -80,10 +103,11 @@ Resources:
 Conclusions:
 
 - Context quality matters more than context volume.
+- Context windows are capacity, not guaranteed understanding.
 - Context should be loaded deliberately and progressively.
-- A tool is a capability; a skill is a repeatable procedure.
-- Skills need inputs, steps, outputs, checks, and failure modes.
-- Verification and traceability are essential.
+- A tool is a capability; a skill is a reusable procedure.
+- Skills need explicit inputs, steps, outputs, checks, failure modes, and handoffs.
+- Verification and traceability are central to reliable execution.
 
 ## 2.4 Internal Evidence
 
@@ -92,14 +116,15 @@ Resources:
 - https://lukin.io/blog/mergeable-by-default-context-engine-ai-codegen/
 - https://lukin.io/blog/1-backend-engineer-vs-11-engineers-with-ai/
 
-Existing principles:
+Existing practical principles:
 
 - generated work should be mergeable by default
 - ambiguity should be reduced before implementation
 - repository conventions should be explicit
 - verification should be deterministic
-- context should be engineering infrastructure
+- context should be treated as engineering infrastructure
 - requirements, code, specs, and docs should remain traceable
+- speed should increase without weakening quality gates
 
 ---
 
@@ -110,43 +135,47 @@ AGENTS.md
   -> small mandatory entrypoint
   -> Phase -1 context loading
   -> skill invocation contract
-  -> authority, boundaries, cross-phase gates
+  -> authority and cross-phase boundaries
 
 AGENTS_CONTRACT.md
   -> preserved complete Rails API contract
-  -> Phase 0 onward, engineering invariants, verification, docs, final evidence
+  -> Phase 0 onward
+  -> engineering invariants, verification, docs, final evidence
 
 skills/**
-  -> context loading
-  -> Rails API implementation
-  -> quality gate review
-  -> post-verification Flow/PRD updates
+  -> phase-owned reusable procedures
+  -> stable artifacts and handoffs
+
+templates/SKILL_TEMPLATE.md
+  -> canonical source schema for skills
+  -> installed as doc/templates/SKILL_TEMPLATE.md
 
 verify / contract_audit
   -> deterministic execution and drift gates
 
 docs/**
   -> explanatory and migration documentation
-
-templates/**
-  -> stable schemas for derived context
+  -> never a second normative authority
 ```
 
-Execution loop:
+Current execution chain:
 
 ```text
-Phase -1 context loading
-  -> skill activation
-  -> contract extraction
-  -> repository scan
-  -> plan
-  -> confirmation
-  -> implementation
-  -> contract alignment
-  -> quality gate review
+context_loading
+  -> rails_api_feature
+  -> quality_gate_review
+  -> flow_prd_update when required
+  -> final report
+```
+
+Cross-phase artifacts:
+
+```text
+CONTEXT INVENTORY + CONTEXT SUMMARY
+  -> FEATURE IMPLEMENTATION HANDOFF
   -> QUALITY GATE DECISION
-  -> derived docs when PASS
-  -> final evidence
+  -> DOC UPDATE HANDOFF
+  -> final evidence report
 ```
 
 ---
@@ -170,8 +199,8 @@ Phase -1 context loading
 | 13. Normative context loading | Done | Mandatory Phase -1 and readiness gate |
 | 14. Skill invocation contract | Done | Activation, precedence, lifecycle, status, fallback |
 | 15. Quality gate review skill | Done | Verification evidence and PASS/BLOCKED decision |
-| 16. Skill consistency audit | Next | Normalized skill schema and reduced duplication |
-| 17. Automated audit | Planned | Machine-enforced skills/docs integrity |
+| 16. Skill consistency audit | Done | Canonical schema, ownership, artifacts, handoffs |
+| 17. Automated audit | Next | Machine-enforced skills/docs integrity |
 | 18. Final integration | Planned | Full consistency and PR completion |
 
 ---
@@ -180,9 +209,14 @@ Phase -1 context loading
 
 ## Stages 1–4 — Positioning, Concepts, Workflow, Quality Gates
 
-**Files:** `README.md`, `docs/CONCEPTS.md`, `docs/WORKFLOW.md`, `docs/QUALITY_GATES.md`
+**Files:**
 
-Implemented agent-ready positioning, stable terminology, compact execution guidance, human/tool boundaries, and a unified verification model.
+- `README.md`
+- `docs/CONCEPTS.md`
+- `docs/WORKFLOW.md`
+- `docs/QUALITY_GATES.md`
+
+Implemented agent-ready positioning, stable terminology, execution guidance, human/tool boundaries, and a unified quality-gate model.
 
 **Behavior impact:** explanatory; original contract behavior remained intact.
 
@@ -190,19 +224,27 @@ Implemented agent-ready positioning, stable terminology, compact execution guida
 
 ## Stages 5–8 — Initial Skills
 
-**Files:** `skills/README.md`, `skills/context_loading.md`, `skills/rails_api_feature.md`, `skills/flow_prd_update.md`
+**Files:**
 
-Extracted reusable procedures for context loading, Rails API implementation, and post-verification documentation.
+- `skills/README.md`
+- `skills/context_loading.md`
+- `skills/rails_api_feature.md`
+- `skills/flow_prd_update.md`
+
+Extracted reusable procedures for context loading, Rails API implementation, and post-verification docs.
 
 **Behavior impact:** modular procedure layer; authority remained in the contract.
 
 ---
 
-## Stages 9–10 — Migration Governance and Changelog
+## Stages 9–10 — Migration Governance and Historical Record
 
-**Files:** `docs/WORKFLOW_MIGRATION.md`, `changelog.md`
+**Files:**
 
-Established controlled migration and a durable research/decision record.
+- `docs/WORKFLOW_MIGRATION.md`
+- `changelog.md`
+
+Established a controlled migration path and durable record of research, decisions, and behavior changes.
 
 ---
 
@@ -214,7 +256,9 @@ Established controlled migration and a durable research/decision record.
 
 **Changelog commit:** `ef30039730ccad77757a4320c20c10d63e138b49`
 
-README became the complete entrypoint with architecture, authority, docs/skills, loading order, installation, terminology, and non-goals.
+README became the complete repository entrypoint with architecture, authority, docs/skills index, loading order, installation, terminology, and non-goals.
+
+**Behavior impact:** adoption clarified; normative rules unchanged.
 
 ---
 
@@ -228,9 +272,13 @@ README became the complete entrypoint with architecture, authority, docs/skills,
 
 **Changelog commit:** `d5c80ce85ada191c7ca97316581a2f06f271d5cd`
 
-Preserved the former full `AGENTS.md` byte-for-byte as `AGENTS_CONTRACT.md` and replaced root `AGENTS.md` with a small mandatory entrypoint/harness.
+Implemented:
 
-**Behavior impact:** reduced default context pressure while preserving every original contract rule.
+- preserved the former full `AGENTS.md` byte-for-byte as `AGENTS_CONTRACT.md`
+- replaced root `AGENTS.md` with a small mandatory entrypoint/harness
+- added load order, authority boundaries, conflict handling, and progressive disclosure
+
+**Behavior impact:** reduced default context pressure without removing original rules.
 
 ---
 
@@ -246,9 +294,25 @@ Preserved the former full `AGENTS.md` byte-for-byte as `AGENTS_CONTRACT.md` and 
 
 **Changelog commit:** `140b1e6383aa1afea42b9e1f6b4e4f92f2d8dc5c`
 
-Added mandatory Phase -1 with context classifications, inventory, summary, dependency expansion, and `Ready for Phase 0: YES/NO`.
+Added mandatory Phase -1 with classifications:
 
-**Behavior impact:** missing material context now blocks planning.
+- `ENTRYPOINT`
+- `NORMATIVE`
+- `SOURCE`
+- `PROCEDURE`
+- `DERIVED`
+- `EVIDENCE`
+- `EXPLANATORY`
+
+Required artifacts:
+
+```text
+CONTEXT INVENTORY
+CONTEXT SUMMARY
+Ready for Phase 0: YES/NO
+```
+
+**Behavior impact:** material missing context blocks planning and code changes.
 
 ---
 
@@ -266,9 +330,15 @@ Added mandatory Phase -1 with context classifications, inventory, summary, depen
 
 **Changelog commit:** `ceb11372e188b1a53ae1751cdbc4ea8759f473ae`
 
-Added `PROCEDURE` classification, activation conditions, invocation lifecycle, statuses, precedence, loading boundaries, and normative fallback.
+Implemented:
 
-**Behavior impact:** activated skills require invocation records; missing skills never waive workflow requirements.
+- skill activation conditions
+- `PROCEDURE` classification
+- invocation lifecycle
+- statuses: `ACTIVATED`, `COMPLETED`, `BLOCKED`, `NOT_REQUIRED`, `UNAVAILABLE`
+- precedence, conflicts, loading boundaries, and fallback
+
+**Behavior impact:** activated skills require records; missing skills never waive requirements.
 
 ---
 
@@ -284,135 +354,185 @@ Added `PROCEDURE` classification, activation conditions, invocation lifecycle, s
 
 **Quality-gates doc commit:** `b47f0be74938a68ebae83134afea1626ef6a61b2`
 
+**Changelog commit:** `d7c219eae8f6c69d6e742b90e0998728ea40e382`
+
+Added reusable verification review with:
+
+- exact commands and exit codes
+- profile rationale
+- checks and skips
+- compliance and traceability review
+- `QUALITY GATE DECISION: PASS/BLOCKED`
+
+**Behavior impact:** only `PASS` permits derived-document updates; unexecuted or stale evidence blocks progress.
+
+---
+
+## Stage 16 — Skill Consistency Audit
+
+**Status:** Done
+
+**Template commit:** `ca7503939b148d7203ca163da2d65831dc4828e6`
+
+**Rails feature normalization:** `00cfafd5cc8e3a136cd4e772d1c691b5597a23c7`
+
+**Flow/PRD normalization:** `cdd776f58b71b12294f2f8c6f5314919ef99f25f`
+
+**Context normalization:** `20386c85aedac250cb648bd93531806223e619df`
+
+**Quality-gate normalization:** `ebfbdf41c86778311ba92b0d44cb2dfcace83fd6`
+
+**Registry ownership/schema commits:**
+
+- `f5a964e2c73da253eb42353d846c8130ee0a0e49`
+- `944bf59d53a0050cd8fc26acf941b432fb9b7c8f`
+
+**README commit:** `207bf6702e2046c8128350c5b6537ac268dfb1bd`
+
+**Migration-doc commit:** `e032052b103cd7e2ca5986b8d8d399304f6c7a76`
+
 **Changelog synchronization:** this commit
 
 **Files:**
 
-- `skills/quality_gate_review.md`
+- `templates/SKILL_TEMPLATE.md`
+- all four `skills/*.md` procedure files
 - `skills/README.md`
 - `README.md`
-- `docs/QUALITY_GATES.md`
+- `docs/WORKFLOW_MIGRATION.md`
 - `changelog.md`
 
 ### Implemented
 
-Added a reusable verification/review skill activated after implementation and contract alignment, before derived documentation.
+Created canonical skill section order:
 
-The skill requires:
+1. title and authority statement
+2. `Purpose`
+3. `Activation`
+4. `Required Inputs`
+5. `Normative References`
+6. `Procedure`
+7. `Required Output`
+8. `Completion Check`
+9. `Failure Modes`
+10. `Handoff`
 
-- task and requirement identity
-- implemented requirement versions
-- changed implementation/spec/schema/process files
-- current traceability matrix
-- known discrepancies
-- ability to execute or inspect required commands
+Normalized every skill to this schema.
 
-The procedure performs:
+Defined one primary owner per phase:
 
-1. Contract-alignment pre-flight.
-2. Verification profile selection.
-3. Exact `bin/verify` or `bin/verify --full` execution/review.
-4. `bin/contract_audit --all` execution/review after verification passes.
-5. Rule-compliance and traceability review.
-6. Binary readiness decision.
+| Skill | Phase ownership | Artifact | Handoff |
+| --- | --- | --- | --- |
+| Context Loading | Phase -1 | context inventory/summary | feature or applicable Phase 0 procedure |
+| Rails API Feature | Phase 0 through implementation | `FEATURE IMPLEMENTATION HANDOFF` | quality gate review |
+| Quality Gate Review | verification/review | evidence + quality decision | docs update or final report |
+| Flow/PRD Update | post-verification docs | `DOC UPDATE HANDOFF` | final report |
 
-Required output now includes:
+Removed overlapping responsibilities:
+
+- Rails feature skill no longer runs or claims verification.
+- Rails feature skill no longer updates derived docs.
+- Quality review does not implement code or modify derived docs.
+- Flow/PRD skill requires quality-gate `PASS`.
+- Context skill stops before contract extraction and implementation.
+
+Added stable cross-phase artifacts:
+
+- `FEATURE IMPLEMENTATION HANDOFF`
+- `DOC UPDATE HANDOFF`
+- standardized `SKILL INVOCATION`
+
+Clarified template mapping:
 
 ```text
-SKILL INVOCATION
-CHECKS
-RULE COMPLIANCE AUDIT
-Discrepancies Report
-TRACEABILITY STATUS
-QUALITY GATE DECISION: PASS/BLOCKED
+toolkit source: templates/SKILL_TEMPLATE.md
+consumer repo:  doc/templates/SKILL_TEMPLATE.md
 ```
 
-The skill explicitly forbids claiming success for commands that were not executed or inspected.
+Updated README with canonical schema, ownership table, sequence, consumer layout, and template path.
 
-`PASS` requires:
-
-- alignment pre-flight passes
-- all `[IMPL]` discrepancies resolved
-- required verification exits `0`
-- contract audit exits `0`
-- no mandatory compliance violation
-- traceability contains no implementation gap
-- evidence matches the current diff
-
-Anything else is `BLOCKED`.
-
-README installation and repository maps now include the skill. The skill registry marks it available. Quality-gate documentation now explains the reusable procedure and decision semantics.
+Updated migration notes to reflect completed architecture and remaining automated enforcement.
 
 ### Why
 
-Verification commands existed and were documented, but their use was not yet packaged as a complete reusable review procedure. An agent could report partial checks, omit profile rationale, use stale evidence, or begin documentation updates without a single explicit readiness decision.
+Before Stage 16, the skills had correct intent but inconsistent headings and overlapping lifecycle descriptions. The feature skill still included verification and documentation steps that now belonged to dedicated skills. This increased context duplication and weakened phase ownership.
 
-This skill converts verification from “commands that should run” into a structured evidence-producing gate.
+A canonical schema makes skills easier to load, inspect, author, validate, and automate.
 
 ### Behavior impact
 
-- Verification/review has a reusable owner skill.
-- Derived docs require `QUALITY GATE DECISION: PASS`.
-- Missing, failed, stale, or uninspected command evidence produces `BLOCKED`.
-- Quality-gate output is directly reusable in the final report.
-- A blocked decision cannot be bypassed by editing docs or weakening the skill.
+- Each skill now has one explicit primary phase responsibility.
+- Handoffs, not duplicated procedures, connect phases.
+- Completion of implementation no longer implies verification success.
+- Completion of verification no longer implies docs were updated.
+- Derived-doc updates are contractually downstream of `PASS`.
+- New skills have a stable authoring schema suitable for automated audit.
+
+### Audit Result
+
+Manual structure/ownership audit: `PASS`.
+
+Confirmed for all four skills:
+
+- authority statement present
+- canonical heading order present
+- activation and exclusion conditions present
+- required inputs present
+- normative references present
+- procedure present
+- stable required output present
+- objective completion conditions present
+- blocking conditions present
+- explicit handoff present
+- no silent phase ownership overlap
 
 ### Decisions
 
-- The skill does not change the command order or profile rules owned by the contract.
-- The full profile remains conditional, not a default escalation.
-- The skill reports evidence; it does not fabricate or infer execution success.
-- Flow/PRD work is the next procedure only after `PASS`.
+- Normative rules are referenced rather than copied in full.
+- Skills retain enough phase detail to be executable without becoming policy authorities.
+- The skill template is a source-authoring artifact and is installed under consumer `doc/templates/**`.
+- Automated enforcement begins only after this manual schema stabilization.
 
-### Next stage
+### Next Stage
 
-Stage 16: audit all skills for a consistent schema, remove unnecessary normative duplication, and introduce a canonical skill template if it improves maintainability.
+Stage 17: implement a focused automated skills/docs audit tool that validates the stabilized schema, registry, references, and repository index mechanically.
 
 ---
 
 # 6. Remaining Stages
 
-## Stage 16 — Skill Consistency Audit
+## Stage 17 — Automated Skills and Docs Audit
 
 **Status:** Next
 
-Planned:
+Planned checks:
 
-- compare all skills against one structural model
-- normalize activation, inputs, references, steps, outputs, completion, failure, and handoff sections
-- reduce duplicated policy text
-- add `templates/SKILL_TEMPLATE.md` if justified
-- update registry with ownership and outputs
+- required skill headings and ordering
+- authority statement presence
+- unique skill titles
+- registry entries match skill files
+- README references exist
+- local Markdown/script references resolve
+- required contract/template files exist
+- source-to-consumer template mapping is documented
+- duplicate phase ownership signals are reported
 
-## Stage 17 — Automated Skills and Docs Audit
-
-**Status:** Planned
-
-Potential checks:
-
-- required skill headings
-- authority declarations
-- internal path/link integrity
-- README index completeness
-- missing referenced files
-- duplicate skill ownership
+Preferred implementation: a focused supplemental audit tool rather than risky large edits to the mature `contract_audit` core.
 
 ## Stage 18 — Final Integration Audit
 
 **Status:** Planned
 
-- README/docs/skills/AGENTS consistency
-- no duplicate authorities
-- no contradictory workflow stages
-- explicit context and skill loading
-- mandatory verification
-- scripts/docs alignment
-- synchronized changelog
-- final PR description
+- run repository-wide consistency audit
+- verify contracts/docs/skills/templates/tooling agree
+- update PR title/body to final scope
+- synchronize changelog and migration status
+- document executed and unavailable checks honestly
+- leave PR ready for owner review/merge without merging automatically
 
 ---
 
-# 7. Current Repository State After Stage 15
+# 7. Repository State After Stage 16
 
 ```text
 AGENTS.md
@@ -433,8 +553,9 @@ skills/
   quality_gate_review.md
   flow_prd_update.md
 templates/
+  SKILL_TEMPLATE.md
   FLOW_TEMPLATE.md
   PRD_TEMPLATE.md
 ```
 
-The repository now has a thin entrypoint, preserved full contract, normative context loading, deterministic skill invocation, reusable quality-gate review, explicit PASS/BLOCKED readiness, documented verification, and a stage-governed migration path.
+The repository now has a thin normative harness, preserved full contract, mandatory context loading, deterministic skill invocation, phase-owned reusable skills, explicit quality decisions, canonical skill schema, and a controlled path to automated enforcement.
